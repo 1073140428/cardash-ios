@@ -1,53 +1,55 @@
 import SwiftUI
 
-// MARK: - 速度表盘
+// MARK: - 弧形仪表
 
-struct SpeedGauge: View {
-    let speed: Double
-    let maxSpeed: Double = 180
+struct ArcGauge: View {
+    let value: Double
+    let maxValue: Double
+    let title: String
+    let unit: String
+    var primary: Bool = false
 
     private var fraction: Double {
-        min(max(speed, 0), maxSpeed) / maxSpeed
+        min(max(value, 0), maxValue) / max(maxValue, 1)
     }
 
     var body: some View {
         ZStack {
-            // 底弧
             Circle()
                 .trim(from: 0, to: 0.667)
-                .stroke(Color(hex: "D9E6FA"), style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                .stroke(Color(hex: "D9E6FA"),
+                        style: StrokeStyle(lineWidth: primary ? 16 : 11, lineCap: .round))
                 .rotationEffect(.degrees(150))
-                .padding(18)
+                .padding(primary ? 18 : 12)
 
-            // 进度弧
             Circle()
                 .trim(from: 0, to: 0.667 * fraction)
                 .stroke(
                     LinearGradient(colors: [Theme.blueSoft, Theme.blue],
                                    startPoint: .leading, endPoint: .trailing),
-                    style: StrokeStyle(lineWidth: 16, lineCap: .round)
+                    style: StrokeStyle(lineWidth: primary ? 16 : 11, lineCap: .round)
                 )
                 .rotationEffect(.degrees(150))
-                .padding(18)
+                .padding(primary ? 18 : 12)
 
             VStack(spacing: 0) {
-                Text("车速")
-                    .font(.system(size: 15, weight: .medium))
+                Text(title)
+                    .font(.system(size: primary ? 15 : 11, weight: .medium))
                     .foregroundColor(Theme.sub)
-                Text(String(format: "%.0f", speed))
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                Text(String(format: "%.0f", value))
+                    .font(.system(size: primary ? 68 : 28, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.ink)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.4)
                     .lineLimit(1)
-                Text("km/h")
-                    .font(.system(size: 15))
+                Text(unit)
+                    .font(.system(size: primary ? 15 : 10))
                     .foregroundColor(Theme.sub)
             }
         }
     }
 }
 
-// MARK: - 小型数值卡
+// MARK: - 小数值卡
 
 struct MiniStat: View {
     let title: String
@@ -56,29 +58,29 @@ struct MiniStat: View {
     let symbol: String
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 9) {
             ZStack {
-                Circle().fill(Theme.blue.opacity(0.10)).frame(width: 36, height: 36)
+                Circle().fill(Theme.blue.opacity(0.10)).frame(width: 32, height: 32)
                 Image(systemName: symbol)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Theme.blue)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 12)).foregroundColor(Theme.sub)
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(title).font(.system(size: 11)).foregroundColor(Theme.sub)
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    Text(unit).font(.system(size: 11)).foregroundColor(Theme.sub)
+                    Text(unit).font(.system(size: 10)).foregroundColor(Theme.sub)
                 }
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(11)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(Color.white.opacity(0.92))
         )
         .shadow(color: Theme.blueDeep.opacity(0.06), radius: 8, x: 0, y: 5)
@@ -92,38 +94,51 @@ struct DashboardView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 PageHeader(
                     title: "实时仪表",
-                    subtitle: store.driving ? "行驶中 · \(store.updatedText)" : "已熄火 · \(store.updatedText)",
+                    subtitle: "\(store.obdState) · \(store.updatedText)",
                     badge: store.connected ? "已连接" : "未连接",
                     badgeOn: store.connected
                 )
 
-                SpeedGauge(speed: store.speed)
-                    .frame(height: 250)
-                    .padding(.top, 4)
+                ArcGauge(value: store.speed, maxValue: 220,
+                         title: "车速", unit: "km/h", primary: true)
+                    .frame(height: 240)
 
                 HStack(spacing: 10) {
-                    MiniStat(title: "转速", value: String(format: "%.0f", store.rpm), unit: "rpm", symbol: "gauge")
-                    MiniStat(title: "总里程", value: String(format: "%.0f", store.odo), unit: "km", symbol: "map")
+                    ArcGauge(value: store.rpm, maxValue: 8000,
+                             title: "转速", unit: "rpm")
+                        .frame(width: 118, height: 118)
+
+                    VStack(spacing: 10) {
+                        MiniStat(title: "水温", value: String(format: "%.0f", store.coolant),
+                                 unit: "°C", symbol: "thermometer")
+                        MiniStat(title: "油量", value: String(format: "%.1f", store.fuel),
+                                 unit: "L", symbol: "drop.fill")
+                    }
                 }
 
-                CarHero(height: 160)
+                CarHero(height: 140)
 
                 HStack(spacing: 10) {
-                    ValueCard(title: "油量", value: String(format: "%.1f", store.fuel),
-                              unit: "L", symbol: "drop.fill")
-                    ValueCard(title: "水温", value: String(format: "%.0f", store.water),
-                              unit: "°C", symbol: "thermometer", tint: Color(hex: "FF7A59"))
-                    ValueCard(title: "电压", value: String(format: "%.1f", store.volt),
-                              unit: "V", symbol: "bolt.fill", tint: Theme.good)
+                    ValueCard(title: "节气门", value: String(format: "%.1f", store.throttle),
+                              unit: "%", symbol: "wind")
+                    ValueCard(title: "进气压力", value: String(format: "%.0f", store.map),
+                              unit: "kPa", symbol: "arrow.down.circle", tint: Theme.good)
+                }
+
+                HStack(spacing: 10) {
+                    ValueCard(title: "发动机负荷", value: String(format: "%.1f", store.load),
+                              unit: "%", symbol: "chart.bar.fill")
+                    ValueCard(title: "电瓶电压", value: String(format: "%.1f", store.volt),
+                              unit: "V", symbol: "battery.100", tint: Color(hex: "F08A24"))
                 }
 
                 PrimaryButton(title: "刷新数据") {
                     Task { await store.refresh() }
                 }
-                .padding(.top, 4)
+                .padding(.top, 2)
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)

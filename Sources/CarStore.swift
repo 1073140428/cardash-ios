@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - 实体定义
+// MARK: - 实体
 
 struct CarItem: Identifiable {
     let id: String
@@ -10,15 +10,33 @@ struct CarItem: Identifiable {
 }
 
 let carItems: [CarItem] = [
-    CarItem(id: "car_speed",      name: "车速",   unit: "km/h", symbol: "speedometer"),
-    CarItem(id: "car_rpm",        name: "转速",   unit: "RPM",  symbol: "gauge"),
-    CarItem(id: "car_fuel",       name: "油量",   unit: "L",    symbol: "drop.fill"),
-    CarItem(id: "car_voltage",    name: "电压",   unit: "V",    symbol: "bolt.fill"),
-    CarItem(id: "car_water_temp", name: "水温",   unit: "°C",   symbol: "thermometer"),
-    CarItem(id: "car_odometer",   name: "总里程", unit: "km",   symbol: "map")
+    CarItem(id: "obd_speed",        name: "车速",       unit: "km/h", symbol: "speedometer"),
+    CarItem(id: "obd_rpm",          name: "转速",       unit: "rpm",  symbol: "gauge"),
+    CarItem(id: "obd_coolant",      name: "水温",       unit: "°C",   symbol: "thermometer"),
+    CarItem(id: "obd_throttle",     name: "节气门",     unit: "%",    symbol: "wind"),
+    CarItem(id: "obd_map",          name: "进气压力",   unit: "kPa",  symbol: "arrow.down.circle"),
+    CarItem(id: "obd_load",         name: "发动机负荷", unit: "%",    symbol: "chart.bar.fill"),
+    CarItem(id: "obd_timing",       name: "点火提前角", unit: "°",    symbol: "bolt.fill"),
+    CarItem(id: "obd_voltage",      name: "电瓶电压",   unit: "V",    symbol: "battery.100"),
+    CarItem(id: "obd_maf",          name: "空气流量",   unit: "g/s",  symbol: "wind.snow"),
+    CarItem(id: "obd_fuel_liters",  name: "油量",       unit: "L",    symbol: "drop.fill")
 ]
 
-// MARK: - HA 历史点
+// MARK: - 行程
+
+struct Trip: Identifiable {
+    let id: String
+    let start: String
+    let end: String
+    let startTs: Double
+    let endTs: Double
+    let durationMin: Int
+    let distanceKm: Double
+    let maxSpeed: Double
+    let avgSpeed: Double
+    let maxCoolant: Double
+    let minVoltage: Double
+}
 
 private struct HAPoint: Decodable {
     let state: String
@@ -26,12 +44,6 @@ private struct HAPoint: Decodable {
 
 private struct HAStateResp: Decodable {
     let state: String
-    let lastChanged: String?
-
-    enum CodingKeys: String, CodingKey {
-        case state
-        case lastChanged = "last_changed"
-    }
 }
 
 // MARK: - 数据层
@@ -44,14 +56,11 @@ final class CarStore: ObservableObject {
     @Published var message = ""
     @Published var lastUpdate: Date? = nil
 
-    // 行程
-    @Published var speedHistory: [Double] = []
-    @Published var odoHistory: [Double] = []
-    @Published var historyLoading = false
-    @Published var historyError = ""
+    @Published var trips: [Trip] = []
+    @Published var tripsLoading = false
+    @Published var tripsError = ""
 
     private var loop: Task<Void, Never>?
-    private var lastHistoryLoad: Date? = nil
 
     var base: String {
         (UserDefaults.standard.string(forKey: "base") ?? "")
@@ -72,7 +81,6 @@ final class CarStore: ObservableObject {
         loop = Task { @MainActor in
             while !Task.isCancelled {
                 await refresh()
-                let driving = (Double(values["car_speed"] ?? "") ?? 0) > 0
                 let interval: UInt64 = driving ? 2_000_000_000 : 8_000_000_000
                 try? await Task.sleep(nanoseconds: interval)
             }
@@ -98,6 +106,10 @@ final class CarStore: ObservableObject {
                 ok += 1
             }
         }
+        if let st = await fetchState("obd_state") {
+            values["obd_state"] = st
+            if st == "已连接" { ok += 1 }
+        }
 
         connected = ok > 0
         if ok == 0 {
@@ -122,62 +134,119 @@ final class CarStore: ObservableObject {
         }
     }
 
-    // MARK: 历史（行程用）
+    // MARK: 行程列表
 
-    func loadHistory(force: Bool = false) async {
-        guard configured else {
-            historyError = "未配置"
-            return
-        }
-        if !force, let t = lastHistoryLoad, Date().timeIntervalSince(t) < 60 { return }
-
-        historyLoading = true
-        historyError = ""
-        defer { historyLoading = false }
+    func loadTrips() async {
+        guard configured else { tripsError = "未配置"; return }
+        tripsLoading = true
+        tripsError = ""
+        defer { tripsLoading = false }
 
         let df = ISO8601DateFormatter()
-        let start = df.string(from: Date().addingTimeInterval(-6 * 3600))
+        let start = df.string(from: Date().addingTimeInterval(-7 * 24 * 3600))
+        let path = base + "/api/history/period/" + start + "?filter_entity_id=sensor.obd_trip"
+        guard let url = URL(string: path) else { tripsError = "地址格式不对"; return }
 
-        speedHistory = await historyValues(entity: "sensor.car_speed", start: start).compactMap { Double($0) }
-        odoHistory = await historyValues(entity: "sensor.car_odometer", start: start).compactMap { Double($0) }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 25
+        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
 
-        if speedHistory.isEmpty && odoHistory.isEmpty {
-            historyError = "这段时间没有历史数据"
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
+                tripsError = "读取失败"
+                return
+            }
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [[[String: Any]]],
+                  let rows = root.first else {
+                tripsError = "暂无行程"
+                return
+            }
+
+            var out: [Trip] = []
+            var seen = Set<String>()
+            for r in rows {
+                guard let a = r["attributes"] as? [String: Any] else { continue }
+                let st = dbl(a["start_ts"])
+                if st <= 0 { continue }
+                let key = String(format: "%.0f", st)
+                if seen.contains(key) { continue }
+                seen.insert(key)
+
+                out.append(Trip(
+                    id: key,
+                    start: (a["start"] as? String) ?? "--",
+                    end: (a["end"] as? String) ?? "--",
+                    startTs: st,
+                    endTs: dbl(a["end_ts"]),
+                    durationMin: Int(dbl(a["duration_min"])),
+                    distanceKm: dbl(a["distance_km"]),
+                    maxSpeed: dbl(a["max_speed"]),
+                    avgSpeed: dbl(a["avg_speed"]),
+                    maxCoolant: dbl(a["max_coolant"]),
+                    minVoltage: dbl(a["min_voltage"])
+                ))
+            }
+
+            trips = out.sorted { $0.startTs > $1.startTs }
+            if trips.isEmpty { tripsError = "暂无行程（HA 默认只保留 10 天历史）" }
+        } catch {
+            tripsError = "读取失败"
         }
-        lastHistoryLoad = Date()
     }
 
-    private func historyValues(entity: String, start: String) async -> [String] {
-        let path = base + "/api/history/period/" + start
-            + "?filter_entity_id=" + entity + "&minimal_response"
+    /// 某段行程内某个实体的采样值
+    func tripSamples(_ trip: Trip, key: String) async -> [Double] {
+        let df = ISO8601DateFormatter()
+        let s = df.string(from: Date(timeIntervalSince1970: trip.startTs / 1000.0))
+        let eDate = Date(timeIntervalSince1970: max(trip.endTs, trip.startTs + 60000) / 1000.0)
+        let e = df.string(from: eDate)
+        let path = base + "/api/history/period/" + s
+            + "?filter_entity_id=sensor." + key
+            + "&end_time=" + e
+            + "&minimal_response"
         guard let url = URL(string: path) else { return [] }
+
         var req = URLRequest(url: url)
-        req.timeoutInterval = 15
+        req.timeoutInterval = 20
         req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+
         do {
             let (data, resp) = try await URLSession.shared.data(for: req)
             guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return [] }
             let rows = try JSONDecoder().decode([[HAPoint]].self, from: data)
-            return (rows.first ?? []).map { $0.state }
+            return (rows.first ?? []).compactMap { Double($0.state) }
         } catch {
             return []
         }
     }
 
-    // MARK: 便捷取值
+    private func dbl(_ any: Any?) -> Double {
+        if let d = any as? Double { return d }
+        if let i = any as? Int { return Double(i) }
+        if let s = any as? String { return Double(s) ?? 0 }
+        return 0
+    }
+
+    // MARK: 取值
 
     func number(_ key: String) -> Double? {
         guard let s = values[key], let d = Double(s) else { return nil }
         return d
     }
 
-    var speed: Double { number("car_speed") ?? 0 }
-    var rpm: Double { number("car_rpm") ?? 0 }
-    var fuel: Double { number("car_fuel") ?? 0 }
-    var volt: Double { number("car_voltage") ?? 0 }
-    var water: Double { number("car_water_temp") ?? 0 }
-    var odo: Double { number("car_odometer") ?? 0 }
+    var speed: Double { number("obd_speed") ?? 0 }
+    var rpm: Double { number("obd_rpm") ?? 0 }
+    var coolant: Double { number("obd_coolant") ?? 0 }
+    var throttle: Double { number("obd_throttle") ?? 0 }
+    var map: Double { number("obd_map") ?? 0 }
+    var load: Double { number("obd_load") ?? 0 }
+    var timing: Double { number("obd_timing") ?? 0 }
+    var volt: Double { number("obd_voltage") ?? 0 }
+    var maf: Double { number("obd_maf") ?? 0 }
+    var fuel: Double { number("obd_fuel_liters") ?? 0 }
 
+    var obdState: String { values["obd_state"] ?? "未连接" }
     var driving: Bool { speed > 1 }
 
     var updatedText: String {
@@ -185,19 +254,5 @@ final class CarStore: ObservableObject {
         let s = Int(Date().timeIntervalSince(t))
         if s < 60 { return "更新于 \(max(s, 0)) 秒前" }
         return "更新于 \(s / 60) 分钟前"
-    }
-
-    // 行程统计
-    var tripAvgSpeed: Double? {
-        let v = speedHistory.filter { $0 > 0 }
-        guard !v.isEmpty else { return nil }
-        return v.reduce(0, +) / Double(v.count)
-    }
-
-    var tripMaxSpeed: Double? { speedHistory.max() }
-
-    var tripDistance: Double? {
-        guard let a = odoHistory.first, let b = odoHistory.last, b >= a else { return nil }
-        return b - a
     }
 }

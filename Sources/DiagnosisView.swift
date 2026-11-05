@@ -50,7 +50,7 @@ struct DiagnosisView: View {
     @State private var result: String? = nil
 
     private var voltOk: Bool { store.volt == 0 || store.volt >= 11.8 }
-    private var waterOk: Bool { store.water == 0 || store.water <= 100 }
+    private var waterOk: Bool { store.coolant == 0 || store.coolant <= 100 }
     private var fuelOk: Bool { store.fuel == 0 || store.fuel >= 8 }
 
     var body: some View {
@@ -75,7 +75,7 @@ struct DiagnosisView: View {
 
                     StatusCard(symbol: "thermometer", title: "冷却系统",
                                status: waterOk ? "正常" : "偏高",
-                               value: String(format: "%.0f °C", store.water), ok: waterOk)
+                               value: String(format: "%.0f °C", store.coolant), ok: waterOk)
 
                     StatusCard(symbol: "drop.fill", title: "燃油系统",
                                status: fuelOk ? "正常" : "偏低",
@@ -85,9 +85,9 @@ struct DiagnosisView: View {
                                status: store.rpm > 0 ? "运转中" : "未启动",
                                value: String(format: "%.0f rpm", store.rpm), ok: true)
 
-                    StatusCard(symbol: "map", title: "总里程",
-                               status: "正常",
-                               value: String(format: "%.0f km", store.odo), ok: true)
+                    StatusCard(symbol: "wind", title: "节气门",
+                               status: store.throttle > 0 ? "工作" : "怠速",
+                               value: String(format: "%.1f %%", store.throttle), ok: true)
 
                     StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
                                status: "无",
@@ -120,7 +120,7 @@ struct DiagnosisView: View {
         if !store.connected { return "未连接到 Home Assistant，无法诊断。" }
         var issues: [String] = []
         if !voltOk { issues.append("电瓶电压偏低（\(String(format: "%.1f", store.volt)) V）") }
-        if !waterOk { issues.append("水温偏高（\(String(format: "%.0f", store.water)) °C）") }
+        if !waterOk { issues.append("水温偏高（\(String(format: "%.0f", store.coolant)) °C）") }
         if !fuelOk { issues.append("油量偏低（\(String(format: "%.1f", store.fuel)) L）") }
         if issues.isEmpty { return "诊断完成：电压、水温、油量均在正常范围，未发现异常。" }
         return "诊断完成，发现 " + String(issues.count) + " 项提示：" + issues.joined(separator: "；")
