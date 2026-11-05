@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import UIKit
 
 // MARK: - 总览
 
@@ -218,7 +219,10 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                 }
 
-                Button(action: { Task { await store.testConnection() } }) {
+                Button(action: {
+                    hideKeyboard()
+                    Task { await store.testConnection() }
+                }) {
                     Text("测试连接")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Theme.blue)
@@ -232,6 +236,7 @@ struct SettingsView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 PrimaryButton(title: saved ? "已保存" : "保存配置") {
+                    hideKeyboard()
                     UserDefaults.standard.set(base.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "base")
                     UserDefaults.standard.set(token.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "token")
                     saved = true
@@ -245,6 +250,11 @@ struct SettingsView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
+    }
+
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil, from: nil, for: nil)
     }
 
     private func infoCol(_ title: String, _ value: String) -> some View {
