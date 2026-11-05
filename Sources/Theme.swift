@@ -162,9 +162,9 @@ struct CarHero: View {
     var body: some View {
         Image("car")
             .resizable()
-            .scaledToFit()
+            .aspectRatio(contentMode: .fit)
             .frame(height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 4)
     }
 }
