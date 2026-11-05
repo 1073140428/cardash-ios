@@ -186,12 +186,32 @@ struct PageHeader: View {
 
 struct CarHero: View {
     var height: CGFloat = 150
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        Image("car")
+        let pic = Image("car")
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(height: height)
             .frame(maxWidth: .infinity)
+
+        return Group {
+            if scheme == .dark {
+                // 深色模式：白底照片放在浅色展台上，边缘自然融合
+                pic
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.white)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color(hex: "C9D8EE"), lineWidth: 0.8)
+                    )
+                    .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 6)
+            } else {
+                pic
+            }
+        }
     }
 }
