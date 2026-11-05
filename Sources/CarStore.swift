@@ -72,6 +72,7 @@ final class CarStore: ObservableObject {
 
     private var loop: Task<Void, Never>?
     private var lastErr = ""
+    private var reachable = false
 
     var base: String {
         var s = (UserDefaults.standard.string(forKey: "base") ?? "")
@@ -118,6 +119,8 @@ final class CarStore: ObservableObject {
         }
 
         var ok = 0
+        reachable = false
+        lastErr = ""
         for item in carItems {
             if let v = await fetchState(item.id) {
                 values[item.id] = v
@@ -133,12 +136,13 @@ final class CarStore: ObservableObject {
         }
         await refreshLocation()
 
-        connected = ok > 0
+        connected = reachable
         if ok == 0 {
-            message = lastErr.isEmpty ? "连不上服务器" : lastErr
+            message = lastErr.isEmpty
+                ? (connected ? "已连上 HA，但还没有车辆数据（车机未上报）" : "连不上服务器")
+                : lastErr
         } else {
             message = ""
-            lastErr = ""
             lastUpdate = Date()
         }
     }
@@ -154,8 +158,16 @@ final class CarStore: ObservableObject {
         do {
             let (data, resp) = try await URLSession.shared.data(for: req)
             guard let http = resp as? HTTPURLResponse else { return nil }
+            if http.statusCode == 401 || http.statusCode == 403 {
+                lastErr = "令牌无效或被拒绝（HTTP \(http.statusCode)）"
+                return nil
+            }
+            reachable = true
+            if http.statusCode == 404 {
+                return nil
+            }
             if http.statusCode != 200 {
-                lastErr = "服务器返回 HTTP " + String(http.statusCode)
+                lastErr = "HTTP \(http.statusCode)"
                 return nil
             }
             return try JSONDecoder().decode(HAStateResp.self, from: data).state
