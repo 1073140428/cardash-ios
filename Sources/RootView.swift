@@ -20,7 +20,7 @@ struct TabBar: View {
         HStack(spacing: 2) {
             ForEach(0..<TABS.count, id: \.self) { i in
                 Button(action: {
-                    withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) { selected = i }
+                    selected = i
                 }) {
                     VStack(spacing: 3) {
                         Image(systemName: TABS[i].symbol)
@@ -40,6 +40,7 @@ struct TabBar: View {
             }
         }
         .padding(6)
+        .animation(.easeInOut(duration: 0.3), value: selected)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.white.opacity(0.96))
