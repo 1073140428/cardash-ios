@@ -53,24 +53,23 @@ struct OverviewView: View {
         }
     }
 
-    @ViewBuilder
     private var locationCard: some View {
-        if store.lat != 0 && store.lon != 0 {
-            SoftCard(padding: 10) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Theme.blue)
-                        Text("车辆位置")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Theme.ink)
-                        Spacer()
-                        Text(store.driving ? "行驶中" : "停放中")
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.sub)
-                    }
+        SoftCard(padding: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Theme.blue)
+                    Text("车辆位置")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Theme.ink)
+                    Spacer()
+                    Text(store.driving ? "行驶中" : "停放中")
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.sub)
+                }
 
+                if store.lat != 0 && store.lon != 0 {
                     Map(
                         coordinateRegion: .constant(MKCoordinateRegion(
                             center: CLLocationCoordinate2D(latitude: store.lat, longitude: store.lon),
@@ -92,6 +91,17 @@ struct OverviewView: View {
                         .font(.system(size: 13))
                         .foregroundColor(Theme.sub)
                         .lineLimit(2)
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: "location.slash")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.sub)
+                        Text(store.locStatus.isEmpty ? "等待定位数据（车机未上报坐标）" : store.locStatus)
+                            .font(.system(size: 13))
+                            .foregroundColor(Theme.sub)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 22)
                 }
             }
         }

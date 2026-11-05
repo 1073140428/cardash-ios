@@ -66,6 +66,7 @@ final class CarStore: ObservableObject {
     @Published var lat: Double = 0
     @Published var lon: Double = 0
     @Published var locAddress: String = ""
+    @Published var locStatus: String = ""
     private var lastGeocode: Date? = nil
     private var geocoderBusy = false
 
@@ -118,6 +119,9 @@ final class CarStore: ObservableObject {
         if let st = await fetchState("obd_state") {
             values["obd_state"] = st
             if st == "已连接" { ok += 1 }
+        }
+        if let ls = await fetchState("obd_loc") {
+            locStatus = ls
         }
         await refreshLocation()
 
