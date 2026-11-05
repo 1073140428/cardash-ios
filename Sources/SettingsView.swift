@@ -91,7 +91,7 @@ struct OverviewView: View {
                             tint: .blue
                         )
                     }
-                    .frame(height: 170)
+                    .frame(height: 112)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     Text(store.locAddress.isEmpty
@@ -110,7 +110,7 @@ struct OverviewView: View {
                             .foregroundColor(Theme.sub)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 22)
+                    .padding(.vertical, 12)
                 }
             }
         }
