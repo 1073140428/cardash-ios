@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // MARK: - 实体
 
@@ -19,7 +20,8 @@ let carItems: [CarItem] = [
     CarItem(id: "obd_timing",       name: "点火提前角", unit: "°",    symbol: "bolt.fill"),
     CarItem(id: "obd_voltage",      name: "电瓶电压",   unit: "V",    symbol: "battery.100"),
     CarItem(id: "obd_maf",          name: "空气流量",   unit: "g/s",  symbol: "wind.snow"),
-    CarItem(id: "obd_fuel_liters",  name: "油量",       unit: "L",    symbol: "drop.fill")
+    CarItem(id: "obd_fuel_liters",  name: "油量",       unit: "L",    symbol: "drop.fill"),
+    CarItem(id: "obd_odometer",     name: "总里程",     unit: "km",   symbol: "map")
 ]
 
 // MARK: - 行程
@@ -59,6 +61,13 @@ final class CarStore: ObservableObject {
     @Published var trips: [Trip] = []
     @Published var tripsLoading = false
     @Published var tripsError = ""
+
+    // 定位
+    @Published var lat: Double = 0
+    @Published var lon: Double = 0
+    @Published var locAddress: String = ""
+    private var lastGeocode: Date? = nil
+    private var geocoderBusy = false
 
     private var loop: Task<Void, Never>?
 
@@ -110,6 +119,7 @@ final class CarStore: ObservableObject {
             values["obd_state"] = st
             if st == "已连接" { ok += 1 }
         }
+        await refreshLocation()
 
         connected = ok > 0
         if ok == 0 {
@@ -218,6 +228,49 @@ final class CarStore: ObservableObject {
             return (rows.first ?? []).compactMap { Double($0.state) }
         } catch {
             return []
+        }
+    }
+
+    // MARK: 定位
+
+    private func refreshLocation() async {
+        guard let url = URL(string: base + "/api/states/device_tracker.obd_car") else { return }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 8
+        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return }
+            guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let attrs = obj["attributes"] as? [String: Any] else { return }
+            let la = dbl(attrs["latitude"])
+            let lo = dbl(attrs["longitude"])
+            if la != 0 && lo != 0 {
+                let moved = abs(la - lat) > 0.0003 || abs(lo - lon) > 0.0003
+                lat = la
+                lon = lo
+                if moved || locAddress.isEmpty { geocode() }
+            }
+        } catch {
+            // 静默失败，位置保持上一次
+        }
+    }
+
+    private func geocode() {
+        if geocoderBusy { return }
+        if let t = lastGeocode, Date().timeIntervalSince(t) < 120 { return }
+        geocoderBusy = true
+        lastGeocode = Date()
+        let loc = CLLocation(latitude: lat, longitude: lon)
+        CLGeocoder().reverseGeocodeLocation(loc) { placemarks, _ in
+            Task { @MainActor in
+                if let p = placemarks?.first {
+                    let parts = [p.administrativeArea, p.locality, p.subLocality, p.name]
+                        .compactMap { $0 }
+                    if !parts.isEmpty { self.locAddress = parts.joined(separator: " ") }
+                }
+                self.geocoderBusy = false
+            }
         }
     }
 

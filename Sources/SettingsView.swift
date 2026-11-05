@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 // MARK: - 总览
 
@@ -44,11 +45,63 @@ struct OverviewView: View {
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "F08A24"))
                 }
+
+                locationCard
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
     }
+
+    @ViewBuilder
+    private var locationCard: some View {
+        if store.lat != 0 && store.lon != 0 {
+            SoftCard(padding: 10) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Theme.blue)
+                        Text("车辆位置")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Theme.ink)
+                        Spacer()
+                        Text(store.driving ? "行驶中" : "停放中")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.sub)
+                    }
+
+                    Map(
+                        coordinateRegion: .constant(MKCoordinateRegion(
+                            center: CLLocationCoordinate2D(latitude: store.lat, longitude: store.lon),
+                            span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
+                        )),
+                        annotationItems: [MapPin(lat: store.lat, lon: store.lon)]
+                    ) { p in
+                        MapMarker(
+                            coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon),
+                            tint: .blue
+                        )
+                    }
+                    .frame(height: 170)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    Text(store.locAddress.isEmpty
+                         ? String(format: "%.5f, %.5f", store.lat, store.lon)
+                         : store.locAddress)
+                        .font(.system(size: 13))
+                        .foregroundColor(Theme.sub)
+                        .lineLimit(2)
+                }
+            }
+        }
+    }
+}
+
+struct MapPin: Identifiable {
+    let id = UUID()
+    let lat: Double
+    let lon: Double
 }
 
 // MARK: - 设置
