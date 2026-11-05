@@ -54,7 +54,11 @@ struct OverviewView: View {
     }
 
     private var overviewItems: [CarItem] {
-        carItems.filter { !["obd_throttle", "obd_timing", "obd_maf"].contains($0.id) }
+        let hidden: Set<String> = [
+            "obd_throttle", "obd_timing", "obd_maf",
+            "obd_load", "obd_map", "obd_speed", "obd_rpm"
+        ]
+        return carItems.filter { !hidden.contains($0.id) }
     }
 
     private var locationCard: some View {
