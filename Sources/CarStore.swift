@@ -71,10 +71,18 @@ final class CarStore: ObservableObject {
     private var geocoderBusy = false
 
     private var loop: Task<Void, Never>?
+    private var lastErr = ""
 
     var base: String {
-        (UserDefaults.standard.string(forKey: "base") ?? "")
+        var s = (UserDefaults.standard.string(forKey: "base") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.isEmpty { return "" }
+        let low = s.lowercased()
+        if !low.hasPrefix("http://") && !low.hasPrefix("https://") {
+            s = "http://" + s
+        }
+        while s.hasSuffix("/") { s.removeLast() }
+        return s
     }
 
     var token: String {
@@ -127,24 +135,57 @@ final class CarStore: ObservableObject {
 
         connected = ok > 0
         if ok == 0 {
-            message = "连不上服务器"
+            message = lastErr.isEmpty ? "连不上服务器" : lastErr
         } else {
             message = ""
+            lastErr = ""
             lastUpdate = Date()
         }
     }
 
     private func fetchState(_ key: String) async -> String? {
-        guard let url = URL(string: base + "/api/states/sensor." + key) else { return nil }
+        guard let url = URL(string: base + "/api/states/sensor." + key) else {
+            lastErr = "地址格式不对：" + base
+            return nil
+        }
         var req = URLRequest(url: url)
         req.timeoutInterval = 8
         req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
         do {
             let (data, resp) = try await URLSession.shared.data(for: req)
-            guard (resp as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+            guard let http = resp as? HTTPURLResponse else { return nil }
+            if http.statusCode != 200 {
+                lastErr = "服务器返回 HTTP " + String(http.statusCode)
+                return nil
+            }
             return try JSONDecoder().decode(HAStateResp.self, from: data).state
         } catch {
+            lastErr = "连不上：\(error.localizedDescription)"
             return nil
+        }
+    }
+
+    // MARK: 连接测试
+
+    func testConnection() async {
+        guard configured else {
+            message = "地址或令牌为空"
+            return
+        }
+        guard let url = URL(string: base + "/api/") else {
+            message = "地址格式不对：" + base
+            return
+        }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 12
+        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            let body = (String(data: data, encoding: .utf8) ?? "").prefix(50)
+            message = "HTTP \(code) · \(body)"
+        } catch {
+            message = "失败：\(error.localizedDescription)"
         }
     }
 

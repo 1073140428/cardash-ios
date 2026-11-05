@@ -210,6 +210,27 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                if !store.message.isEmpty {
+                    Text(store.message)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "F08A24"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
+                }
+
+                Button(action: { Task { await store.testConnection() } }) {
+                    Text("测试连接")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Theme.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Theme.blue.opacity(0.5), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+
                 PrimaryButton(title: saved ? "已保存" : "保存配置") {
                     UserDefaults.standard.set(base.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "base")
                     UserDefaults.standard.set(token.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "token")
