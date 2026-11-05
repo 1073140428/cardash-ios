@@ -35,7 +35,7 @@ final class CarVM: ObservableObject {
     @Published var values: [String: String] = [:]
     @Published var message: String = ""
 
-    private var timer: Timer?
+    private var task: Task<Void, Never>?
 
     private var base: String {
         (UserDefaults.standard.string(forKey: "base") ?? "")
@@ -49,15 +49,17 @@ final class CarVM: ObservableObject {
 
     func start() {
         stop()
-        refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+        task = Task { @MainActor in
+            while !Task.isCancelled {
+                refresh()
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
         }
     }
 
     func stop() {
-        timer?.invalidate()
-        timer = nil
+        task?.cancel()
+        task = nil
     }
 
     func refresh() {
