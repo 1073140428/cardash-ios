@@ -19,13 +19,20 @@ struct OverviewView: View {
 
                 SoftCard(padding: 10) {
                     VStack(spacing: 6) {
-                        CarHero(height: 120)
-                        Text("吉A275CT")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Theme.ink)
-                        Text(store.connected ? "HomeAssistant 已连接" : "等待连接 HomeAssistant")
-                            .font(.system(size: 12))
-                            .foregroundColor(Theme.sub)
+                        CarHero(height: 126)
+                        HStack(spacing: 6) {
+                            Text("吉A275CT")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Theme.ink)
+                            Text("·")
+                                .font(.system(size: 12))
+                                .foregroundColor(Theme.sub)
+                            Text(store.connected ? "HomeAssistant 已连接" : "等待连接 HomeAssistant")
+                                .font(.system(size: 12))
+                                .foregroundColor(Theme.sub)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(height: 20)
                     }
                 }
 
