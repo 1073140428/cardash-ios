@@ -63,7 +63,7 @@ struct DiagnosisView: View {
                     badgeOn: store.connected
                 )
 
-                CarHero(height: 165)
+                CarHero(height: 115)
 
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 12),
