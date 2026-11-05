@@ -28,11 +28,13 @@ struct OverviewView: View {
                     }
                 }
 
+                locationCard
+
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 10),
                     GridItem(.flexible(), spacing: 10)
                 ], spacing: 10) {
-                    ForEach(carItems) { item in
+                    ForEach(overviewItems) { item in
                         ValueCard(title: item.name,
                                   value: store.values[item.id] ?? "--",
                                   unit: item.unit,
@@ -45,12 +47,14 @@ struct OverviewView: View {
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "F08A24"))
                 }
-
-                locationCard
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
+    }
+
+    private var overviewItems: [CarItem] {
+        carItems.filter { !["obd_throttle", "obd_timing", "obd_maf"].contains($0.id) }
     }
 
     private var locationCard: some View {
