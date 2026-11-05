@@ -15,44 +15,16 @@ extension Color {
     }
 }
 
-extension UIColor {
-    convenience init(hex: String) {
-        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.hasPrefix("#") { s.removeFirst() }
-        var v: UInt64 = 0
-        Scanner(string: s).scanHexInt64(&v)
-        self.init(red: CGFloat((v >> 16) & 0xFF) / 255.0,
-                  green: CGFloat((v >> 8) & 0xFF) / 255.0,
-                  blue: CGFloat(v & 0xFF) / 255.0,
-                  alpha: 1.0)
-    }
-}
-
-/// 浅色 / 深色成对定义，随系统 trait 自动切换
-func dynColor(_ light: String, _ dark: String) -> Color {
-    Color(UIColor { trait in
-        UIColor(hex: trait.userInterfaceStyle == .dark ? dark : light)
-    })
-}
-
 enum Theme {
-    // 文字
-    static let ink      = dynColor("111A2B", "EAF1FF")
-    static let sub      = dynColor("8792A6", "8FA0BC")
-    // 主色
-    static let blue     = dynColor("2F6BFF", "4D8BFF")
-    static let blueDeep = dynColor("1B4FD8", "2F6BFF")
-    static let blueSoft = dynColor("8FC0FF", "6FA8FF")
-    // 背景
-    static let bgTop    = dynColor("D7E6FB", "0A1020")
-    static let bgMid    = dynColor("EDF3FC", "0E1730")
-    static let bgEnd    = dynColor("FFFFFF", "090E18")
-    // 分隔 / 卡片
-    static let line     = dynColor("E4EBF7", "22304A")
-    static let card     = dynColor("FFFFFF", "131D31")
-    // 状态
-    static let good     = dynColor("17A673", "2ED3A0")
-    static let warn     = dynColor("F08A24", "FFA53D")
+    static let ink      = Color(hex: "111A2B")
+    static let sub      = Color(hex: "8792A6")
+    static let blue     = Color(hex: "2F6BFF")
+    static let blueDeep = Color(hex: "1B4FD8")
+    static let blueSoft = Color(hex: "8FC0FF")
+    static let bgTop    = Color(hex: "D7E6FB")
+    static let bgMid    = Color(hex: "EDF3FC")
+    static let line     = Color(hex: "E4EBF7")
+    static let good     = Color(hex: "17A673")
 }
 
 // MARK: - 背景
@@ -60,7 +32,7 @@ enum Theme {
 struct AppBackground: View {
     var body: some View {
         LinearGradient(
-            gradient: Gradient(colors: [Theme.bgTop, Theme.bgMid, Theme.bgEnd]),
+            gradient: Gradient(colors: [Theme.bgTop, Theme.bgMid, Color.white]),
             startPoint: .top,
             endPoint: .bottom
         )
@@ -86,7 +58,7 @@ struct SoftCard<Content: View>: View {
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(Theme.card.opacity(0.92))
+                    .fill(Color.white.opacity(0.92))
             )
             .shadow(color: Theme.blueDeep.opacity(0.07), radius: 14, x: 0, y: 8)
     }
@@ -122,7 +94,7 @@ struct ValueCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.card.opacity(0.92))
+                .fill(Color.white.opacity(0.92))
         )
         .shadow(color: Theme.blueDeep.opacity(0.06), radius: 10, x: 0, y: 6)
     }
@@ -186,32 +158,12 @@ struct PageHeader: View {
 
 struct CarHero: View {
     var height: CGFloat = 150
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let pic = Image("car")
+        Image("car")
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(height: height)
             .frame(maxWidth: .infinity)
-
-        return Group {
-            if scheme == .dark {
-                // 深色模式：白底照片放在浅色展台上，边缘自然融合
-                pic
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.white)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color(hex: "C9D8EE"), lineWidth: 0.8)
-                    )
-                    .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 6)
-            } else {
-                pic
-            }
-        }
     }
 }

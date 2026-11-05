@@ -43,7 +43,7 @@ struct TabBar: View {
         .animation(.easeInOut(duration: 0.3), value: selected)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Theme.card.opacity(0.96))
+                .fill(Color.white.opacity(0.96))
                 .shadow(color: Theme.blueDeep.opacity(0.12), radius: 18, x: 0, y: 8)
         )
         .padding(.horizontal, 14)

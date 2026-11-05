@@ -27,7 +27,7 @@ struct StatusCard: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(status)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(ok ? Theme.good : Theme.warn)
+                    .foregroundColor(ok ? Theme.good : Color(hex: "F08A24"))
                 Spacer(minLength: 4)
                 Text(value)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
@@ -39,7 +39,7 @@ struct StatusCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.card.opacity(0.92))
+                .fill(Color.white.opacity(0.92))
         )
         .shadow(color: Theme.blueDeep.opacity(0.06), radius: 10, x: 0, y: 6)
     }

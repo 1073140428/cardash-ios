@@ -83,7 +83,7 @@ struct TripRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Theme.card.opacity(0.92))
+                .fill(Color.white.opacity(0.92))
         )
         .shadow(color: Theme.blueDeep.opacity(0.06), radius: 8, x: 0, y: 5)
     }

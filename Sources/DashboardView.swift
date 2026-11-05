@@ -17,7 +17,7 @@ struct ArcGauge: View {
         ZStack {
             Circle()
                 .trim(from: 0, to: 0.667)
-                .stroke(Theme.line,
+                .stroke(Color(hex: "D9E6FA"),
                         style: StrokeStyle(lineWidth: primary ? 16 : 12, lineCap: .round))
                 .rotationEffect(.degrees(150))
                 .padding(primary ? 18 : 13)
@@ -81,7 +81,7 @@ struct MiniStat: View {
         .padding(11)
         .background(
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(Theme.card.opacity(0.92))
+                .fill(Color.white.opacity(0.92))
         )
         .shadow(color: Theme.blueDeep.opacity(0.06), radius: 8, x: 0, y: 5)
     }

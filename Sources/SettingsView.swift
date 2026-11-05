@@ -53,7 +53,7 @@ struct OverviewView: View {
                 if !store.message.isEmpty {
                     Text(store.message)
                         .font(.system(size: 13))
-                        .foregroundColor(Theme.warn)
+                        .foregroundColor(Color(hex: "F08A24"))
                 }
             }
             .padding(.horizontal, 16)
@@ -134,7 +134,6 @@ struct MapPin: Identifiable {
 
 struct SettingsView: View {
     @EnvironmentObject var store: CarStore
-    @EnvironmentObject var appearance: Appearance
     @AppStorage("base") private var base: String = ""
     @AppStorage("token") private var token: String = ""
     @State private var saved = false
@@ -219,37 +218,10 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                SoftCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "circle.lefthalf.filled")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Theme.blue)
-                            Text("外观")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Theme.ink)
-                            Spacer()
-                            Text(appearance.mode == .system ? "随系统" : appearance.mode.title)
-                                .font(.system(size: 12))
-                                .foregroundColor(Theme.sub)
-                        }
-                        Picker("", selection: $appearance.mode) {
-                            ForEach(AppearanceMode.allCases) { m in
-                                Text(m.title).tag(m)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        Text("跟随系统时，手机切到深色（含“自动”按日落）App 会同步变深色。")
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.sub)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
                 if !store.message.isEmpty {
                     Text(store.message)
                         .font(.system(size: 12))
-                        .foregroundColor(Theme.warn)
+                        .foregroundColor(Color(hex: "F08A24"))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 4)
                 }
