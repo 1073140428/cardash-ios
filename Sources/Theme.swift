@@ -164,7 +164,6 @@ struct CarHero: View {
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(height: height)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .frame(maxWidth: .infinity)
     }
 }
