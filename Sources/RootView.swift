@@ -20,7 +20,7 @@ struct TabBar: View {
         HStack(spacing: 2) {
             ForEach(0..<TABS.count, id: \.self) { i in
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.18)) { selected = i }
+                    withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) { selected = i }
                 }) {
                     VStack(spacing: 3) {
                         Image(systemName: TABS[i].symbol)
@@ -58,15 +58,14 @@ struct RootView: View {
         ZStack(alignment: .bottom) {
             AppBackground()
 
-            Group {
-                switch tab {
-                case 0: OverviewView()
-                case 1: DashboardView()
-                case 2: DiagnosisView()
-                case 3: TripView()
-                default: SettingsView()
-                }
+            TabView(selection: $tab) {
+                OverviewView().tag(0)
+                DashboardView().tag(1)
+                DiagnosisView().tag(2)
+                TripView().tag(3)
+                SettingsView().tag(4)
             }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .padding(.bottom, 88)
 
             TabBar(selected: $tab)

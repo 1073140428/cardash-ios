@@ -19,7 +19,7 @@ struct OverviewView: View {
                 SoftCard(padding: 10) {
                     VStack(spacing: 6) {
                         CarHero(height: 120)
-                        Text("宝来传奇")
+                        Text("吉A275CT")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Theme.ink)
                         Text(store.connected ? "HomeAssistant 已连接" : "等待连接 HomeAssistant")
