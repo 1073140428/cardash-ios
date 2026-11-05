@@ -18,26 +18,26 @@ struct ArcGauge: View {
             Circle()
                 .trim(from: 0, to: 0.667)
                 .stroke(Color(hex: "D9E6FA"),
-                        style: StrokeStyle(lineWidth: primary ? 16 : 11, lineCap: .round))
+                        style: StrokeStyle(lineWidth: primary ? 16 : 12, lineCap: .round))
                 .rotationEffect(.degrees(150))
-                .padding(primary ? 18 : 12)
+                .padding(primary ? 18 : 13)
 
             Circle()
                 .trim(from: 0, to: 0.667 * fraction)
                 .stroke(
                     LinearGradient(colors: [Theme.blueSoft, Theme.blue],
                                    startPoint: .leading, endPoint: .trailing),
-                    style: StrokeStyle(lineWidth: primary ? 16 : 11, lineCap: .round)
+                    style: StrokeStyle(lineWidth: primary ? 16 : 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(150))
-                .padding(primary ? 18 : 12)
+                .padding(primary ? 18 : 13)
 
             VStack(spacing: 0) {
                 Text(title)
-                    .font(.system(size: primary ? 15 : 11, weight: .medium))
+                    .font(.system(size: primary ? 15 : 12, weight: .medium))
                     .foregroundColor(Theme.sub)
                 Text(String(format: "%.0f", value))
-                    .font(.system(size: primary ? 68 : 28, weight: .bold, design: .rounded))
+                    .font(.system(size: primary ? 68 : 34, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.ink)
                     .minimumScaleFactor(0.4)
                     .lineLimit(1)
@@ -88,6 +88,7 @@ struct MiniStat: View {
 }
 
 // MARK: - 仪表页
+// 布局：车模在上 → 左车速表 / 右转速表 → 两排四张卡
 
 struct DashboardView: View {
     @EnvironmentObject var store: CarStore
@@ -102,37 +103,34 @@ struct DashboardView: View {
                     badgeOn: store.connected
                 )
 
-                ArcGauge(value: store.speed, maxValue: 220,
-                         title: "车速", unit: "km/h", primary: true)
-                    .frame(height: 240)
+                CarHero(height: 118)
 
                 HStack(spacing: 10) {
+                    ArcGauge(value: store.speed, maxValue: 220,
+                             title: "车速", unit: "km/h")
+                        .frame(height: 150)
+
                     ArcGauge(value: store.rpm, maxValue: 8000,
                              title: "转速", unit: "rpm")
-                        .frame(width: 118, height: 118)
-
-                    VStack(spacing: 10) {
-                        MiniStat(title: "水温", value: String(format: "%.0f", store.coolant),
-                                 unit: "°C", symbol: "thermometer")
-                        MiniStat(title: "油量", value: String(format: "%.1f", store.fuel),
-                                 unit: "L", symbol: "drop.fill")
-                    }
+                        .frame(height: 150)
                 }
 
-                CarHero(height: 140)
-
-                HStack(spacing: 10) {
-                    ValueCard(title: "节气门", value: String(format: "%.1f", store.throttle),
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
+                ], spacing: 10) {
+                    ValueCard(title: "节气门",
+                              value: String(format: "%.1f", store.throttle),
                               unit: "%", symbol: "wind")
-                    ValueCard(title: "进气压力", value: String(format: "%.0f", store.map),
+                    ValueCard(title: "进气压力",
+                              value: String(format: "%.0f", store.map),
                               unit: "kPa", symbol: "arrow.down.circle", tint: Theme.good)
-                }
-
-                HStack(spacing: 10) {
-                    ValueCard(title: "发动机负荷", value: String(format: "%.1f", store.load),
+                    ValueCard(title: "发动机负荷",
+                              value: String(format: "%.1f", store.load),
                               unit: "%", symbol: "chart.bar.fill")
-                    ValueCard(title: "电瓶电压", value: String(format: "%.1f", store.volt),
-                              unit: "V", symbol: "battery.100", tint: Color(hex: "F08A24"))
+                    ValueCard(title: "点火提前角",
+                              value: String(format: "%.1f", store.timing),
+                              unit: "°", symbol: "bolt.fill")
                 }
 
                 PrimaryButton(title: "刷新数据") {

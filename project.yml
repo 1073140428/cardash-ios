@@ -15,8 +15,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dapeng.cardash
         INFOPLIST_FILE: Info.plist
-        MARKETING_VERSION: "2.7"
-        CURRENT_PROJECT_VERSION: "9"
+        MARKETING_VERSION: "2.8"
+        CURRENT_PROJECT_VERSION: "10"
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.0"
         CODE_SIGNING_ALLOWED: "NO"

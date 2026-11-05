@@ -18,7 +18,7 @@ struct OverviewView: View {
 
                 SoftCard(padding: 10) {
                     VStack(spacing: 6) {
-                        CarHero(height: 170)
+                        CarHero(height: 120)
                         Text("宝来传奇")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Theme.ink)
