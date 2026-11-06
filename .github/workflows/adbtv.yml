@@ -3,14 +3,14 @@ name: Build ADBTV IPA
 on:
   workflow_dispatch:
   push:
-    branches: [ master, main ]
+    branches: [ adbtv, master, main ]
     paths:
       - 'adbtv/**'
       - '.github/workflows/adbtv.yml'
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
 
     steps:
