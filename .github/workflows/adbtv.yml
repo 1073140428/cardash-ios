@@ -1,0 +1,58 @@
+name: Build ADBTV IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'adbtv/**'
+      - '.github/workflows/adbtv.yml'
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: adbtv
+        run: |
+          xcodegen generate
+          sed -i '' 's/objectVersion = [0-9]*;/objectVersion = 56;/' ADBTV.xcodeproj/project.pbxproj
+          grep -m1 objectVersion ADBTV.xcodeproj/project.pbxproj
+
+      - name: Build (unsigned)
+        working-directory: adbtv
+        run: |
+          xcodebuild \
+            -project ADBTV.xcodeproj \
+            -target ADBTV \
+            -sdk iphoneos \
+            -configuration Release \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IPA
+        working-directory: adbtv
+        run: |
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/ADBTV.app Payload/
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Payload/ADBTV.app/Info.plist
+          zip -qry ADBTV_unsigned.ipa Payload
+          ls -lh ADBTV_unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ADBTV-ipa
+          path: adbtv/ADBTV_unsigned.ipa
+          retention-days: 30
