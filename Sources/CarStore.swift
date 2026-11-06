@@ -38,6 +38,7 @@ struct Trip: Identifiable {
     let avgSpeed: Double
     let maxCoolant: Double
     let minVoltage: Double
+    let file: String
 }
 
 private struct HAPoint: Decodable {
@@ -251,7 +252,8 @@ final class CarStore: ObservableObject {
                     maxSpeed: dbl(a["max_speed"]),
                     avgSpeed: dbl(a["avg_speed"]),
                     maxCoolant: dbl(a["max_coolant"]),
-                    minVoltage: dbl(a["min_voltage"])
+                    minVoltage: dbl(a["min_voltage"]),
+                    file: (a["file"] as? String) ?? ""
                 ))
             }
 
@@ -260,6 +262,37 @@ final class CarStore: ObservableObject {
         } catch {
             tripsError = "读取失败"
         }
+    }
+
+    /// 行程曲线：优先下载车机上传到 HA 的 csv，失败再退回 HA 历史采样
+    func tripSpeeds(_ trip: Trip) async -> [Double] {
+        if !trip.file.isEmpty {
+            let enc = trip.file.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? trip.file
+            if let url = URL(string: base + "/local/trips/" + enc) {
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 20
+                do {
+                    let (data, resp) = try await URLSession.shared.data(for: req)
+                    if (resp as? HTTPURLResponse)?.statusCode == 200,
+                       let text = String(data: data, encoding: .utf8) {
+                        let vals = parseSpeedCsv(text)
+                        if !vals.isEmpty { return vals }
+                    }
+                } catch {
+                }
+            }
+        }
+        return await tripSamples(trip, key: "obd_speed")
+    }
+
+    private func parseSpeedCsv(_ text: String) -> [Double] {
+        var out: [Double] = []
+        for line in text.components(separatedBy: "\n") {
+            let parts = line.split(separator: ",")
+            guard parts.count >= 4, Double(parts[1]) != nil else { continue }
+            if let v = Double(parts[3]) { out.append(v) }
+        }
+        return out
     }
 
     /// 某段行程内某个实体的采样值

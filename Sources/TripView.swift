@@ -213,7 +213,7 @@ struct TripDetailView: View {
         .onAppear {
             loading = true
             Task {
-                speeds = await store.tripSamples(trip, key: "obd_speed")
+                speeds = await store.tripSpeeds(trip)
                 loading = false
             }
         }
