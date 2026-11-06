@@ -253,10 +253,23 @@ final class CarStore: ObservableObject {
             if seen.contains(key) { continue }
             seen.insert(key)
 
+            // 时间显示不依赖车机写的字符串：今天只显示 HH:mm，非今天带 MM-dd
+            let et = dbl(a["end_ts"])
+            let sDate = Date(timeIntervalSince1970: st / 1000.0)
+            let eDate = Date(timeIntervalSince1970: max(et, st) / 1000.0)
+            let hhmm = DateFormatter()
+            hhmm.dateFormat = "HH:mm"
+            let mdhm = DateFormatter()
+            mdhm.dateFormat = "MM-dd HH:mm"
+            let cal = Calendar.current
+            let startText = cal.isDateInToday(sDate) ? hhmm.string(from: sDate) : mdhm.string(from: sDate)
+            let sameDay = cal.isDate(sDate, inSameDayAs: eDate)
+            let endText = (cal.isDateInToday(eDate) && sameDay) ? hhmm.string(from: eDate) : mdhm.string(from: eDate)
+
             out.append(Trip(
                 id: key,
-                start: (a["start"] as? String) ?? "--",
-                end: (a["end"] as? String) ?? "--",
+                start: startText,
+                end: endText,
                 startTs: st,
                 endTs: dbl(a["end_ts"]),
                 durationMin: Int(dbl(a["duration_min"])),
