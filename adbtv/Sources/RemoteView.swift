@@ -276,7 +276,9 @@ struct RemoteView: View {
     }
 
     private func saveShot() async {
-        guard let img = image ?? (await adb.screenshot()) else { show("截图失败"); return }
+        var shot = image
+        if shot == nil { shot = await adb.screenshot() }
+        guard let img = shot else { show("截图失败"); return }
         UIImageWriteToSavedPhotosAlbum(img, nil, nil, nil)
         show("已保存到相册")
     }

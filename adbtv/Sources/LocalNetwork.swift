@@ -47,16 +47,8 @@ enum LocalNetwork {
         if r == 0 { return true }
         if errno != EINPROGRESS { return false }
 
-        var wset = fd_set()
-        withUnsafeMutableBytes(of: &wset) { $0.initializeMemory(as: UInt8.self, repeating: 0) }
-        let intOffset = Int(fd) / 32
-        let bitOffset = Int(fd) % 32
-        withUnsafeMutableBytes(of: &wset.fds_bits) { raw in
-            let p = raw.bindMemory(to: Int32.self)
-            if intOffset < p.count { p[intOffset] |= Int32(bitPattern: UInt32(1) << UInt32(bitOffset)) }
-        }
-        var tv = timeval(tv_sec: 0, tv_usec: Int32(timeout * 1_000_000))
-        let sel = select(fd + 1, nil, &wset, nil, &tv)
+        var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+        let sel = poll(&pfd, 1, Int32(timeout * 1000))
         if sel <= 0 { return false }
         var err: Int32 = 0
         var len = socklen_t(MemoryLayout<Int32>.size)

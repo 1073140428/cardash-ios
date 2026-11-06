@@ -219,8 +219,8 @@ struct AppsView: View {
 
     // MARK: 选择 APK
 
-    private func handlePick(_ result: Result<[URL], Error>) {
-        guard case .success(let urls) = result, let url = urls.first else { return }
+    private func handlePick(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
         let name = url.lastPathComponent
         guard name.lowercased().hasSuffix(".apk") else {
             show("请选择 .apk 文件")
