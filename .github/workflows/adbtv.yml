@@ -3,10 +3,7 @@ name: Build ADBTV IPA
 on:
   workflow_dispatch:
   push:
-    branches: [ master, main ]
-    paths:
-      - 'adbtv/**'
-      - '.github/workflows/adbtv.yml'
+    branches: [ adbtv ]
 
 jobs:
   build:

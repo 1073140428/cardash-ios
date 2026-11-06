@@ -66,11 +66,8 @@ final class ADBSocket {
                 close()
                 throw ADBError.connect("连接被拒绝，请检查 ADB 是否开启")
             }
-            var wset = fd_set()
-            fdZero(&wset)
-            fdSet(fd, &wset)
-            var tv = timeval(tv_sec: Int(timeout), tv_usec: 0)
-            let sel = select(fd + 1, nil, &wset, nil, &tv)
+            var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+            let sel = poll(&pfd, 1, Int32(timeout * 1000))
             if sel <= 0 {
                 close()
                 throw ADBError.timeout
@@ -184,22 +181,6 @@ final class ADBSocket {
         return UInt32(littleEndian: v)
     }
 
-    // MARK: - fd_set 辅助
-
-    private func fdZero(_ set: inout fd_set) {
-        withUnsafeMutableBytes(of: &set) { $0.initializeMemory(as: UInt8.self, repeating: 0) }
-    }
-
-    private func fdSet(_ fd: Int32, _ set: inout fd_set) {
-        let intOffset = Int(fd) / 32
-        let bitOffset = Int(fd) % 32
-        withUnsafeMutableBytes(of: &set.fds_bits) { raw in
-            let ptr = raw.bindMemory(to: Int32.self)
-            if intOffset < ptr.count {
-                ptr[intOffset] |= Int32(bitPattern: UInt32(1) << UInt32(bitOffset))
-            }
-        }
-    }
 }
 
 // MARK: - 会话
