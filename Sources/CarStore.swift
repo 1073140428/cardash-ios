@@ -211,57 +211,66 @@ final class CarStore: ObservableObject {
         defer { tripsLoading = false }
 
         let df = ISO8601DateFormatter()
-        let start = df.string(from: Date().addingTimeInterval(-7 * 24 * 3600))
-        let path = base + "/api/history/period/" + start + "?filter_entity_id=sensor.obd_trip"
-        guard let url = URL(string: path) else { tripsError = "地址格式不对"; return }
+        var allRows: [[String: Any]] = []
+        let now = Date()
 
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 25
-        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        // HA 的历史接口跨度超过约 1 天会返回空数组，所以按天分段查
+        for day in 0..<7 {
+            let end = now.addingTimeInterval(-Double(day) * 86400)
+            let start = end.addingTimeInterval(-86400)
+            let path = base + "/api/history/period/" + df.string(from: start)
+                + "?filter_entity_id=sensor.obd_trip&end_time=" + df.string(from: end)
+            guard let url = URL(string: path) else { continue }
 
-        do {
-            let (data, resp) = try await URLSession.shared.data(for: req)
-            guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
-                tripsError = "读取失败"
-                return
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 20
+            req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+            do {
+                let (data, resp) = try await URLSession.shared.data(for: req)
+                guard (resp as? HTTPURLResponse)?.statusCode == 200 else { continue }
+                if let root = try JSONSerialization.jsonObject(with: data) as? [[[String: Any]]],
+                   let rows = root.first {
+                    allRows.append(contentsOf: rows)
+                }
+            } catch {
+                continue
             }
-            guard let root = try JSONSerialization.jsonObject(with: data) as? [[[String: Any]]],
-                  let rows = root.first else {
-                tripsError = "暂无行程"
-                return
-            }
-
-            var out: [Trip] = []
-            var seen = Set<String>()
-            for r in rows {
-                guard let a = r["attributes"] as? [String: Any] else { continue }
-                let st = dbl(a["start_ts"])
-                if st <= 0 { continue }
-                let key = String(format: "%.0f", st)
-                if seen.contains(key) { continue }
-                seen.insert(key)
-
-                out.append(Trip(
-                    id: key,
-                    start: (a["start"] as? String) ?? "--",
-                    end: (a["end"] as? String) ?? "--",
-                    startTs: st,
-                    endTs: dbl(a["end_ts"]),
-                    durationMin: Int(dbl(a["duration_min"])),
-                    distanceKm: dbl(a["distance_km"]),
-                    maxSpeed: dbl(a["max_speed"]),
-                    avgSpeed: dbl(a["avg_speed"]),
-                    maxCoolant: dbl(a["max_coolant"]),
-                    minVoltage: dbl(a["min_voltage"]),
-                    file: (a["file"] as? String) ?? ""
-                ))
-            }
-
-            trips = out.sorted { $0.startTs > $1.startTs }
-            if trips.isEmpty { tripsError = "暂无行程（HA 默认只保留 10 天历史）" }
-        } catch {
-            tripsError = "读取失败"
         }
+
+        if allRows.isEmpty {
+            trips = []
+            tripsError = "暂无行程"
+            return
+        }
+
+        var out: [Trip] = []
+        var seen = Set<String>()
+        for r in allRows {
+            guard let a = r["attributes"] as? [String: Any] else { continue }
+            let st = dbl(a["start_ts"])
+            if st <= 0 { continue }
+            let key = String(format: "%.0f", st)
+            if seen.contains(key) { continue }
+            seen.insert(key)
+
+            out.append(Trip(
+                id: key,
+                start: (a["start"] as? String) ?? "--",
+                end: (a["end"] as? String) ?? "--",
+                startTs: st,
+                endTs: dbl(a["end_ts"]),
+                durationMin: Int(dbl(a["duration_min"])),
+                distanceKm: dbl(a["distance_km"]),
+                maxSpeed: dbl(a["max_speed"]),
+                avgSpeed: dbl(a["avg_speed"]),
+                maxCoolant: dbl(a["max_coolant"]),
+                minVoltage: dbl(a["min_voltage"]),
+                file: (a["file"] as? String) ?? ""
+            ))
+        }
+
+        trips = out.sorted { $0.startTs > $1.startTs }
+        if trips.isEmpty { tripsError = "暂无行程" }
     }
 
     /// 行程曲线：优先下载车机上传到 HA 的 csv，失败再退回 HA 历史采样
