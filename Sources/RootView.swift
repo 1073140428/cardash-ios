@@ -15,6 +15,7 @@ let TABS: [TabItem] = [
 
 struct TabBar: View {
     @Binding var selected: Int
+    @Namespace private var pill
 
     var body: some View {
         HStack(spacing: 2) {
@@ -32,8 +33,13 @@ struct TabBar: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(i == selected ? Theme.blue : Color.clear)
+                        ZStack {
+                            if i == selected {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Theme.blue)
+                                    .matchedGeometryEffect(id: "pill", in: pill)
+                            }
+                        }
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
