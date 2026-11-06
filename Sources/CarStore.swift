@@ -261,6 +261,7 @@ final class CarStore: ObservableObject {
 
         let df = ISO8601DateFormatter()
         var allRows: [[String: Any]] = []
+        var cancelled = false
         let now = Date()
 
         // HA 的历史接口跨度超过约 1 天会返回空数组，所以按天分段查
@@ -282,8 +283,14 @@ final class CarStore: ObservableObject {
                     allRows.append(contentsOf: rows)
                 }
             } catch {
+                if error is CancellationError { cancelled = true }
                 continue
             }
+        }
+
+        if allRows.isEmpty && cancelled {
+            // 被取消（如下拉刷新手势结束）时不要清空已有列表
+            return
         }
 
         if allRows.isEmpty {

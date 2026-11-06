@@ -137,7 +137,10 @@ struct TripView: View {
             .padding(.top, 10)
         }
         .refreshable {
-            await store.loadTrips()
+            // 用独立 Task：避免系统在刷新手势结束时取消这个任务，
+            // 否则分段请求会全部被取消，导致列表被刷成空
+            let job = Task { await store.loadTrips() }
+            await job.value
         }
         .sheet(item: $selected) { t in
             TripDetailView(trip: t)
