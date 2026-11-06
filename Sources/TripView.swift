@@ -136,6 +136,9 @@ struct TripView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
+        .refreshable {
+            await store.loadTrips()
+        }
         .sheet(item: $selected) { t in
             TripDetailView(trip: t)
                 .environmentObject(store)
