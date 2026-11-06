@@ -41,6 +41,18 @@ struct Trip: Identifiable {
     let file: String
 }
 
+struct TireInfo: Identifiable {
+    let slot: Int
+    let name: String
+    let kpa: Double
+    let tempC: Double
+    let battery: Double
+    let alarm: String
+    var id: Int { slot }
+    var ok: Bool { alarm.isEmpty || alarm == "正常" }
+    var bar: Double { kpa / 100.0 }
+}
+
 private struct HAPoint: Decodable {
     let state: String
 }
@@ -59,6 +71,7 @@ final class CarStore: ObservableObject {
     @Published var message = ""
     @Published var lastUpdate: Date? = nil
 
+    @Published var tires: [TireInfo] = []
     @Published var trips: [Trip] = []
     @Published var tripsLoading = false
     @Published var tripsError = ""
@@ -136,6 +149,7 @@ final class CarStore: ObservableObject {
             locStatus = ls
         }
         await refreshLocation()
+        await refreshTires()
 
         connected = reachable
         if ok == 0 {
@@ -145,6 +159,41 @@ final class CarStore: ObservableObject {
         } else {
             message = ""
             lastUpdate = Date()
+        }
+    }
+
+    private func refreshTires() async {
+        let keys = ["tp_fl", "tp_fr", "tp_rl", "tp_rr"]
+        let names = ["左前", "右前", "左后", "右后"]
+        var out: [TireInfo] = []
+        for i in 0..<keys.count {
+            guard let obj = await fetchFull("sensor." + keys[i]) else { continue }
+            let a = (obj["attributes"] as? [String: Any]) ?? [:]
+            let kpa = Double(obj["state"] as? String ?? "") ?? 0
+            if kpa <= 0 { continue }
+            out.append(TireInfo(
+                slot: i,
+                name: names[i],
+                kpa: kpa,
+                tempC: (a["temp_c"] as? NSNumber)?.doubleValue ?? 0,
+                battery: (a["battery"] as? NSNumber)?.doubleValue ?? 0,
+                alarm: (a["alarm"] as? String) ?? ""
+            ))
+        }
+        tires = out
+    }
+
+    private func fetchFull(_ entity: String) async -> [String: Any]? {
+        guard let url = URL(string: base + "/api/states/" + entity) else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 8
+        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        } catch {
+            return nil
         }
     }
 

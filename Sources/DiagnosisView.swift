@@ -45,6 +45,42 @@ struct StatusCard: View {
     }
 }
 
+struct TireCell: View {
+    let t: TireInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 4) {
+                Text(t.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Theme.sub)
+                Spacer(minLength: 0)
+                Text(t.ok ? "正常" : t.alarm)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(t.ok ? Theme.good : Theme.warn)
+                    .lineLimit(1)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(String(format: "%.2f", t.bar))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(t.ok ? Theme.ink : Theme.warn)
+                Text("bar")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.sub)
+            }
+            Text(String(format: "%.0f°C · %.1fV", t.tempC, t.battery))
+                .font(.system(size: 11))
+                .foregroundColor(Theme.sub)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.bgMid.opacity(0.55))
+        )
+    }
+}
+
 struct DiagnosisView: View {
     @EnvironmentObject var store: CarStore
     @State private var result: String? = nil
@@ -92,6 +128,33 @@ struct DiagnosisView: View {
                     StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
                                status: "无",
                                value: store.connected ? "已读" : "--", ok: true)
+                }
+
+                if !store.tires.isEmpty {
+                    SoftCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "car.side.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Theme.blue)
+                                Text("胎压监测")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(Theme.ink)
+                                Spacer()
+                                Text("\(store.tires.count) 轮")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Theme.sub)
+                            }
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(), spacing: 10),
+                                GridItem(.flexible(), spacing: 10)
+                            ], spacing: 10) {
+                                ForEach(store.tires) { t in
+                                    TireCell(t: t)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if let r = result {
