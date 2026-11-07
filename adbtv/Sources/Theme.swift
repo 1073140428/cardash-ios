@@ -90,7 +90,7 @@ struct KeyPadStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 17, weight: highlight ? .bold : .medium))
             .foregroundColor(highlight ? Theme.deepBlue : Theme.textMain)
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                     .fill(configuration.isPressed ? Theme.primary : (highlight ? Theme.primarySoft : Color.white))

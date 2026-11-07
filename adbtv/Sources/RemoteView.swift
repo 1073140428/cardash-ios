@@ -39,16 +39,21 @@ struct RemoteView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            header
-            screenCard
-            quickBar
-            Spacer(minLength: 4)
-            keypad
+        GeometryReader { geo in
+            let keyH = keyHeight(in: geo.size)
+
+            VStack(spacing: 10) {
+                header
+                screenCard
+                quickBar
+                Spacer(minLength: 4)
+                keypad(keyH: keyH)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
         .background(Theme.bg.ignoresSafeArea())
         .onAppear { startLoop() }
         .onDisappear { stopLoop() }
@@ -70,6 +75,15 @@ struct RemoteView: View {
                     .padding(.bottom, 12)
             }
         }
+    }
+
+    /// 按键高度：把剩余空间平均分给 4 行，限制在 48–96 之间
+    private func keyHeight(in size: CGSize) -> CGFloat {
+        let screenH = (size.width - 28) / max(aspect, 0.1)
+        let fixed = screenH + 34 + 34 + 14 + 30      // 画面 + 标题 + 快捷栏 + 边距 + 三个间距
+        let spare = size.height - fixed
+        let h = (spare - 30) / 4                     // 4 行，3 个 10pt 行距
+        return max(48, min(96, h))
     }
 
     // MARK: 顶栏
@@ -209,45 +223,34 @@ struct RemoteView: View {
 
     // MARK: 遥控盘
 
-    private var keypad: some View {
+    private func keypad(keyH: CGFloat) -> some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                key("返回", 4)
-                key("主页", 3)
-                key("菜单", 82)
+                key("电源", 26, height: keyH)
+                key("主页", 3, height: keyH)
+                key("静音", 164, height: keyH)
             }
-
             HStack(spacing: 10) {
-                VStack(spacing: 10) {
-                    key("↑", 19)
-                    HStack(spacing: 10) {
-                        key("←", 21)
-                        key("OK", 66, highlight: true)
-                        key("→", 22)
-                    }
-                    key("↓", 20)
-                }
-                .frame(maxWidth: .infinity)
-
-                VStack(spacing: 10) {
-                    key("音量+", 24)
-                    key("静音", 164)
-                    key("音量-", 25)
-                }
-                .frame(width: 96)
+                key("音量+", 24, height: keyH)
+                key("↑", 19, height: keyH)
+                key("音量-", 25, height: keyH)
             }
-
             HStack(spacing: 10) {
-                key("电源", 26)
-                key("上个应用", 187)
-                key("输入源", 172)
+                key("←", 21, height: keyH)
+                key("OK", 66, height: keyH, highlight: true)
+                key("→", 22, height: keyH)
+            }
+            HStack(spacing: 10) {
+                key("菜单", 82, height: keyH)
+                key("↓", 20, height: keyH)
+                key("返回", 4, height: keyH)
             }
         }
         .disabled(!adb.isConnected)
         .opacity(adb.isConnected ? 1 : 0.45)
     }
 
-    private func key(_ title: String, _ code: Int, highlight: Bool = false) -> some View {
+    private func key(_ title: String, _ code: Int, height: CGFloat, highlight: Bool = false) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             Task {
@@ -256,6 +259,7 @@ struct RemoteView: View {
             }
         } label: {
             Text(title)
+                .frame(maxWidth: .infinity, minHeight: height)
         }
         .buttonStyle(KeyPadStyle(highlight: highlight))
     }
@@ -421,35 +425,35 @@ struct FullScreenRemote: View {
     }
 
     private var floatingPad: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                fkey("音量-", 25)
-                fkey("静音", 164)
-                fkey("音量+", 24)
+        VStack(spacing: 7) {
+            HStack(spacing: 7) {
+                fkey("电源", 26, height: keyH)
+                fkey("主页", 3, height: keyH)
+                fkey("静音", 164, height: keyH)
             }
-            HStack(spacing: 8) {
-                fkey("←", 21)
+            HStack(spacing: 7) {
+                fkey("音量+", 24, height: keyH)
+                fkey("↑", 19, height: keyH)
+                fkey("音量-", 25, height: keyH)
+            }
+            HStack(spacing: 7) {
+                fkey("←", 21, height: keyH)
                 fkey("OK", 66, big: true)
-                fkey("→", 22)
+                fkey("→", 22, height: keyH)
             }
-            HStack(spacing: 8) {
-                fkey("返回", 4)
-                fkey("↑", 19)
-                fkey("主页", 3)
-            }
-            HStack(spacing: 8) {
-                fkey("↓", 20)
-                fkey("菜单", 82)
-                fkey("电源", 26)
+            HStack(spacing: 7) {
+                fkey("菜单", 82, height: keyH)
+                fkey("↓", 20, height: keyH)
+                fkey("返回", 4, height: keyH)
             }
         }
-        .padding(10)
+        .padding(9)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.black.opacity(0.42))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
         .opacity(0.92)

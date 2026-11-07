@@ -16,7 +16,7 @@ struct ConnectView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("ADB TV助手")
+                Text("TV助手")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(Theme.textMain)
                     .padding(.top, 6)
