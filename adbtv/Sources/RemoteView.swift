@@ -427,24 +427,24 @@ struct FullScreenRemote: View {
     private var floatingPad: some View {
         VStack(spacing: 7) {
             HStack(spacing: 7) {
-                fkey("电源", 26, height: keyH)
-                fkey("主页", 3, height: keyH)
-                fkey("静音", 164, height: keyH)
+                fkey("电源", 26)
+                fkey("主页", 3)
+                fkey("静音", 164)
             }
             HStack(spacing: 7) {
-                fkey("音量+", 24, height: keyH)
-                fkey("↑", 19, height: keyH)
-                fkey("音量-", 25, height: keyH)
+                fkey("音量+", 24)
+                fkey("↑", 19)
+                fkey("音量-", 25)
             }
             HStack(spacing: 7) {
-                fkey("←", 21, height: keyH)
+                fkey("←", 21)
                 fkey("OK", 66, big: true)
-                fkey("→", 22, height: keyH)
+                fkey("→", 22)
             }
             HStack(spacing: 7) {
-                fkey("菜单", 82, height: keyH)
-                fkey("↓", 20, height: keyH)
-                fkey("返回", 4, height: keyH)
+                fkey("菜单", 82)
+                fkey("↓", 20)
+                fkey("返回", 4)
             }
         }
         .padding(9)
