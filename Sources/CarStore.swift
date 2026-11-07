@@ -41,7 +41,7 @@ struct Trip: Identifiable {
     let file: String
 }
 
-struct TireInfo: Identifiable {
+struct TireInfo: Identifiable, Codable {
     let slot: Int
     let name: String
     let kpa: Double
@@ -72,6 +72,8 @@ final class CarStore: ObservableObject {
     @Published var lastUpdate: Date? = nil
 
     @Published var tires: [TireInfo] = []
+    @Published var tiresStale = false          // true = 当前显示的是上次缓存的数据
+    @Published var tiresCachedAt: Date? = nil  // 缓存时间
     @Published var trips: [Trip] = []
     @Published var tripsLoading = false
     @Published var tripsError = ""
@@ -110,6 +112,7 @@ final class CarStore: ObservableObject {
     // MARK: 轮询
 
     func start() {
+        restoreTireCacheIfNeeded()
         stop()
         loop = Task { @MainActor in
             while !Task.isCancelled {
@@ -180,7 +183,50 @@ final class CarStore: ObservableObject {
                 alarm: (a["alarm"] as? String) ?? ""
             ))
         }
-        tires = out
+        if out.isEmpty {
+            // HA 重启后 sensor.tp_* 虚拟实体会消失，这里回落到上次缓存，避免卡片闪没
+            if let cached = Self.loadTireCache() {
+                tires = cached.info
+                tiresCachedAt = cached.at
+                tiresStale = true
+            } else {
+                tires = []
+                tiresStale = false
+            }
+        } else {
+            tires = out
+            tiresStale = false
+            tiresCachedAt = Date()
+            Self.saveTireCache(out)
+        }
+    }
+
+    // MARK: 胎压本地缓存
+
+    private static let tireCacheKey = "tireCache_v1"
+
+    private static func saveTireCache(_ list: [TireInfo]) {
+        guard let data = try? JSONEncoder().encode(list) else { return }
+        UserDefaults.standard.set(data, forKey: tireCacheKey)
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: tireCacheKey + "_at")
+    }
+
+    static func loadTireCache() -> (info: [TireInfo], at: Date)? {
+        guard let data = UserDefaults.standard.data(forKey: tireCacheKey),
+              let list = try? JSONDecoder().decode([TireInfo].self, from: data),
+              !list.isEmpty else { return nil }
+        let ts = UserDefaults.standard.double(forKey: tireCacheKey + "_at")
+        let at = ts > 0 ? Date(timeIntervalSince1970: ts) : Date()
+        return (list, at)
+    }
+
+    /// 启动时先把缓存显示出来，等新数据到了再覆盖
+    func restoreTireCacheIfNeeded() {
+        if tires.isEmpty, let cached = Self.loadTireCache() {
+            tires = cached.info
+            tiresCachedAt = cached.at
+            tiresStale = true
+        }
     }
 
     private func fetchFull(_ entity: String) async -> [String: Any]? {

@@ -81,6 +81,12 @@ struct TireCell: View {
     }
 }
 
+private func shortTime(_ d: Date) -> String {
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm"
+    return f.string(from: d)
+}
+
 struct DiagnosisView: View {
     @EnvironmentObject var store: CarStore
     @State private var result: String? = nil
@@ -141,9 +147,18 @@ struct DiagnosisView: View {
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(Theme.ink)
                                 Spacer()
-                                Text("\(store.tires.count) 轮")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Theme.sub)
+                                if store.tiresStale, let at = store.tiresCachedAt {
+                                    Text("上次 " + shortTime(at))
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(Theme.sub)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(Theme.sub.opacity(0.12)))
+                                } else {
+                                    Text("\(store.tires.count) 轮")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Theme.sub)
+                                }
                             }
                             LazyVGrid(columns: [
                                 GridItem(.flexible(), spacing: 10),
