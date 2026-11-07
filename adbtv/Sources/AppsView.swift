@@ -9,6 +9,8 @@ struct AppsView: View {
     @State private var showPicker = false
     @State private var pendingUninstall: TVApp?
     @State private var toast: String?
+    @State private var showError = false
+    @State private var installErrorText = ""
     @FocusState private var searchFocused: Bool
 
     private var filtered: [TVApp] {
@@ -104,7 +106,12 @@ struct AppsView: View {
             }
         )
         .scrollDismissesKeyboardIfAvailable()
-        .fileImporter(isPresented: $showPicker, allowedContentTypes: [UTType.data]) { result in
+        .alert("安装失败", isPresented: $showError) {
+            Button("知道了", role: .cancel) {}
+        } message: {
+            Text(installErrorText)
+        }
+        .fileImporter(isPresented: $showPicker, allowedContentTypes: [UTType.data, UTType.zip]) { result in
             handlePick(result)
         }
         .alert("卸载应用", isPresented: Binding(
@@ -234,22 +241,34 @@ struct AppsView: View {
     // MARK: 选择 APK
 
     private func handlePick(_ result: Result<URL, Error>) {
-        guard case .success(let url) = result else { return }
-        let name = url.lastPathComponent
-        guard name.lowercased().hasSuffix(".apk") else {
-            show("请选择 .apk 文件")
+        guard case .success(let url) = result else {
+            if case .failure(let e) = result { show("选择文件失败：\(e.localizedDescription)") }
             return
         }
+        let name = url.lastPathComponent
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             let data = try Data(contentsOf: url)
+            // 不强制扩展名：APK 是 zip 结构，校验文件头 PK\x03\x04
+            let isZip = data.count > 4 && data[0] == 0x50 && data[1] == 0x4B
+            guard isZip else {
+                show("这不是 APK 文件（文件头不是 ZIP）")
+                return
+            }
             Task {
                 let ok = await adb.install(apk: data, name: name)
-                show(ok ? "安装成功" : "安装失败")
+                if ok {
+                    show("安装成功")
+                } else if let err = adb.installError, !err.isEmpty {
+                    installErrorText = err
+                    showError = true
+                } else {
+                    show("安装失败")
+                }
             }
         } catch {
-            show("读取文件失败")
+            show("读取文件失败：\(error.localizedDescription)")
         }
     }
 

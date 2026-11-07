@@ -46,6 +46,7 @@ final class ADBService: ObservableObject {
     @Published private(set) var installProgress: Double = 0
     @Published private(set) var installMessage = ""
     @Published var lastError: String?
+    @Published var installError: String?
 
     private let client = ADBClient()
     private var connectedAddress = ""
@@ -167,11 +168,13 @@ final class ADBService: ObservableObject {
         installing = true
         installProgress = 0
         installMessage = "正在上传…"
+        installError = nil
         defer { installing = false }
 
         let remote = "/data/local/tmp/adbtv_install.apk"
         let sizeMB = Double(apk.count) / 1048576
         log("开始安装 \(name)（\(String(format: "%.1f", sizeMB)) MB）")
+
         do {
             try await client.push(data: apk, to: remote) { p in
                 Task { @MainActor in
@@ -179,19 +182,50 @@ final class ADBService: ObservableObject {
                     self.installMessage = "正在上传 \(Int(p * 100))%"
                 }
             }
+
+            // 校验远端文件大小，确认上传完整
+            installMessage = "校验文件…"
+            installProgress = 0.75
+            let check = try await client.shell("stat -c %s \(remote) 2>/dev/null || echo 0")
+            let remoteSize = Int(check.output.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            log("上传完成：本地 \(apk.count) 字节 / 远端 \(remoteSize) 字节")
+            if remoteSize != apk.count {
+                installError = "上传不完整（本地 \(apk.count) / 远端 \(remoteSize) 字节）"
+                installMessage = "上传失败"
+                return false
+            }
+
             installMessage = "正在安装…"
-            installProgress = 0.8
-            let r = try await client.shell("pm install -r -d \(remote)")
-            let out = r.output
-            let ok = out.contains("Success")
-            installMessage = ok ? "安装成功" : "安装失败"
-            installProgress = 1.0
-            log(ok ? "安装成功：\(name)" : "安装失败：\(out.trimmingCharacters(in: .whitespacesAndNewlines))")
+            installProgress = 0.85
+
+            let commands = [
+                "pm install -r -d \(remote)",
+                "cmd package install -r -d \(remote)",
+                "pm install -r \(remote)"
+            ]
+            var outputs: [String] = []
+            for cmd in commands {
+                let r = try await client.shell(cmd + " 2>&1")
+                let out = r.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                outputs.append("$ \(cmd)\n\(out)")
+                log("\(cmd) → \(out)")
+                if out.contains("Success") {
+                    installProgress = 1.0
+                    installMessage = "安装成功"
+                    _ = try? await client.shell("rm -f \(remote)")
+                    await loadApps(includeSystem: false)
+                    return true
+                }
+            }
+
             _ = try? await client.shell("rm -f \(remote)")
-            if ok { await loadApps(includeSystem: false) }
-            return ok
+            installProgress = 1.0
+            installMessage = "安装失败"
+            installError = outputs.joined(separator: "\n\n")
+            return false
         } catch {
             installMessage = "安装失败"
+            installError = error.localizedDescription
             log("安装出错：\(error.localizedDescription)")
             return false
         }
