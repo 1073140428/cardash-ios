@@ -16,7 +16,9 @@ struct AppsView: View {
     private var filtered: [TVApp] {
         guard !query.isEmpty else { return adb.apps }
         let q = query.lowercased()
-        return adb.apps.filter { $0.package.lowercased().contains(q) }
+        return adb.apps.filter {
+            $0.package.lowercased().contains(q) || $0.displayName.lowercased().contains(q)
+        }
     }
 
     var body: some View {
@@ -44,7 +46,7 @@ struct AppsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(Theme.textFaint)
-                TextField("搜索包名", text: $query)
+                TextField("搜索应用名或包名", text: $query)
                     .font(.system(size: 14))
                     .focused($searchFocused)
                     .autocapitalization(.none)

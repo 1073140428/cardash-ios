@@ -6,8 +6,10 @@ struct TVApp: Identifiable, Hashable {
     let package: String
     var version: String = ""
     var system: Bool = false
+    var label: String? = nil
 
     var displayName: String {
+        if let l = label, !l.isEmpty { return l }
         let parts = package.split(separator: ".").map(String.init)
         guard parts.count >= 2 else { return package }
         return parts.suffix(2).joined(separator: ".")
@@ -146,6 +148,22 @@ final class ADBService: ObservableObject {
         }
         apps = list.sorted { $0.package < $1.package }
         log("应用列表：\(apps.count) 个")
+        Task { await resolveLabels() }
+    }
+
+    /// 逐个从 APK 里解析中文应用名（有缓存，第二次很快）
+    private func resolveLabels() async {
+        let snapshot = apps
+        var resolved = 0
+        for i in snapshot.indices {
+            let pkg = snapshot[i].package
+            guard let name = await ApkLabel.resolve(client: client, package: pkg) else { continue }
+            if let idx = apps.firstIndex(where: { $0.package == pkg }) {
+                apps[idx].label = name
+                resolved += 1
+            }
+        }
+        if resolved > 0 { log("已解析 \(resolved) 个应用名称") }
     }
 
     func launch(_ app: TVApp) async {
