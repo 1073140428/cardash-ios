@@ -9,17 +9,16 @@ enum ApkLabel {
 
     static func resolve(client: ADBClient, package: String) async -> String? {
         // 1. 包名 → APK 路径
-        guard let pathRes = try? await client.shell("pm path \(package) | head -1 | cut -d: -f2"),
-              case let raw = pathRes.output.trimmingCharacters(in: .whitespacesAndNewlines),
-              !raw.isEmpty else { return nil }
-        let apkPath = raw
+        guard let pathRes = try? await client.shell("pm path \(package) | head -1 | cut -d: -f2") else { return nil }
+        let apkPath = pathRes.output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !apkPath.isEmpty else { return nil }
 
         let cacheKey = "label_\(package)_\(abs(apkPath.hashValue))"
         if let cached = UserDefaults.standard.string(forKey: cacheKey), !cached.isEmpty {
             return cached
         }
 
-        // 2. 取 manifest
+        // 2. manifest 很小，走 shell 很快
         guard let manData = await unzipBase64(client: client, apk: apkPath, entry: "AndroidManifest.xml"),
               let parsed = parseManifest(manData) else { return nil }
 
@@ -28,9 +27,7 @@ enum ApkLabel {
         case .text(let s):
             label = s
         case .reference(let id):
-            if let arsc = await unzipBase64(client: client, apk: apkPath, entry: "resources.arsc") {
-                label = resolveArsc(arsc, resId: id)
-            }
+            label = await resolveReference(client: client, apk: apkPath, resId: id)
         }
 
         if let label = label, !label.isEmpty {
@@ -38,6 +35,21 @@ enum ApkLabel {
             return label
         }
         return nil
+    }
+
+    /// resources.arsc 有几 MB，走 shell+base64 要几分钟；改成设备端解包 + sync 拉取（约 0.5 秒）
+    private static func resolveReference(client: ADBClient, apk: String, resId: UInt32) async -> String? {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("adbtv_label_\(resId).arsc")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        _ = try? await client.shell(
+            "unzip -o -p '\(apk)' resources.arsc > /data/local/tmp/adbtv_lbl.arsc 2>/dev/null")
+        defer { Task { _ = try? await client.shell("rm -f /data/local/tmp/adbtv_lbl.arsc") } }
+
+        guard let n = try? await client.recv(remote: "/data/local/tmp/adbtv_lbl.arsc", to: tmp), n > 8,
+              let data = try? Data(contentsOf: tmp) else { return nil }
+        return resolveArsc(data, resId: resId)
     }
 
     private static func unzipBase64(client: ADBClient, apk: String, entry: String) async -> Data? {

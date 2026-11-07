@@ -299,6 +299,68 @@ final class ADBClient {
     }
 
     /// sync 推文件
+    /// sync RECV：二进制拉取设备文件（比 shell+base64 快数百倍）
+    func recv(remote: String, to local: URL) async throws -> Int {
+        try await onQueue {
+            let lid = self.nextLocalId()
+            var open = Data("sync:".utf8); open.append(0)
+            try self.sock.send(cmd: A_OPEN, arg0: lid, arg1: 0, data: open)
+
+            var dev: UInt32 = 0
+            while true {
+                let m = try self.sock.recv()
+                if m.cmd == A_OKAY && m.arg1 == lid { dev = m.arg0; break }
+                if m.cmd == A_CLSE && m.arg1 == lid { throw ADBError.device("文件拉取被拒绝") }
+            }
+
+            FileManager.default.createFile(atPath: local.path, contents: nil)
+            guard let fh = try? FileHandle(forWritingTo: local) else {
+                throw ADBError.device("无法创建临时文件")
+            }
+            defer { try? fh.close() }
+
+            let pathData = Data(remote.utf8)
+            var req = Data("RECV".utf8)
+            req.append(self.le32(UInt32(pathData.count)))
+            req.append(pathData)
+            try self.sock.send(cmd: A_WRTE, arg0: lid, arg1: dev, data: req)
+
+            var buf = Data()
+            var total = 0
+            while true {
+                let m = try self.sock.recv()
+                if m.cmd == A_CLSE { break }
+                guard m.cmd == A_WRTE else { continue }
+                try self.sock.send(cmd: A_OKAY, arg0: lid, arg1: m.arg0)
+                buf.append(m.data)
+
+                while buf.count >= 8 {
+                    let tag = String(data: buf.prefix(4), encoding: .ascii) ?? ""
+                    let ln = Int(UInt32(buf[buf.startIndex + 4]) | (UInt32(buf[buf.startIndex + 5]) << 8)
+                                 | (UInt32(buf[buf.startIndex + 6]) << 16) | (UInt32(buf[buf.startIndex + 7]) << 24))
+                    if tag == "DATA" {
+                        if buf.count < 8 + ln { break }
+                        fh.write(buf.subdata(in: 8..<(8 + ln)))
+                        total += ln
+                        buf.removeSubrange(0..<(8 + ln))
+                    } else if tag == "FAIL" {
+                        if buf.count < 8 + ln { break }
+                        let msg = String(data: buf.subdata(in: 8..<(8 + ln)), encoding: .utf8) ?? ""
+                        throw ADBError.device("拉取失败: \(msg)")
+                    } else if tag == "DONE" {
+                        try self.sock.send(cmd: A_CLSE, arg0: lid, arg1: dev)
+                        return total
+                    } else {
+                        if buf.count < 8 + ln { break }
+                        buf.removeSubrange(0..<(8 + ln))
+                    }
+                }
+            }
+            try self.sock.send(cmd: A_CLSE, arg0: lid, arg1: dev)
+            return total
+        }
+    }
+
     func push(data: Data, to remote: String, progress: ((Double) -> Void)? = nil) async throws {
         try await onQueue {
             let lid = self.nextLocalId()
