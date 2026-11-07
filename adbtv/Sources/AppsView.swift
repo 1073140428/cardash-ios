@@ -111,8 +111,11 @@ struct AppsView: View {
         } message: {
             Text(installErrorText)
         }
-        .fileImporter(isPresented: $showPicker, allowedContentTypes: [UTType.data, UTType.zip]) { result in
-            handlePick(result)
+        .sheet(isPresented: $showPicker) {
+            DocumentPicker { url in
+                showPicker = false
+                if let url = url { handlePickURL(url) }
+            }
         }
         .alert("卸载应用", isPresented: Binding(
             get: { pendingUninstall != nil },
@@ -240,20 +243,12 @@ struct AppsView: View {
 
     // MARK: 选择 APK
 
-    private func handlePick(_ result: Result<URL, Error>) {
-        guard case .success(let url) = result else {
-            if case .failure(let e) = result { show("选择文件失败：\(e.localizedDescription)") }
-            return
-        }
+    private func handlePickURL(_ url: URL) {
         let name = url.lastPathComponent
-        // 立刻给反馈：读取大文件可能要几秒，避免看起来“没反应”
         show("已选择 \(name)，正在读取…")
         let service = adb
 
         Task.detached(priority: .userInitiated) {
-            let accessing = url.startAccessingSecurityScopedResource()
-            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-
             var data: Data?
             var readError: String?
             do {
@@ -263,12 +258,9 @@ struct AppsView: View {
             }
 
             guard let apk = data, apk.count > 4 else {
-                await MainActor.run {
-                    show("读取文件失败：\(readError ?? "文件为空")")
-                }
+                await MainActor.run { show("读取文件失败：\(readError ?? "文件为空")") }
                 return
             }
-            // APK = ZIP，校验文件头 PK\x03\x04
             guard apk[0] == 0x50, apk[1] == 0x4B else {
                 await MainActor.run { show("这不是 APK 文件（文件头不是 ZIP）") }
                 return
