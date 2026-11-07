@@ -9,6 +9,7 @@ struct AppsView: View {
     @State private var showPicker = false
     @State private var pendingUninstall: TVApp?
     @State private var toast: String?
+    @FocusState private var searchFocused: Bool
 
     private var filtered: [TVApp] {
         guard !query.isEmpty else { return adb.apps }
@@ -24,6 +25,8 @@ struct AppsView: View {
                     .foregroundColor(Theme.textMain)
                 Spacer()
                 Button {
+                    searchFocused = false
+                    dismissKeyboard()
                     showPicker = true
                 } label: {
                     HStack(spacing: 4) {
@@ -41,6 +44,7 @@ struct AppsView: View {
                     .foregroundColor(Theme.textFaint)
                 TextField("搜索包名", text: $query)
                     .font(.system(size: 14))
+                    .focused($searchFocused)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                 if !query.isEmpty {
@@ -89,7 +93,17 @@ struct AppsView: View {
             }
         }
         .padding(.top, 6)
-        .background(Theme.bg.ignoresSafeArea())
+        .background(
+            Theme.bg.ignoresSafeArea()
+                .onTapGesture { searchFocused = false; dismissKeyboard() }
+        )
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 12).onChanged { _ in
+                searchFocused = false
+                dismissKeyboard()
+            }
+        )
+        .scrollDismissesKeyboardIfAvailable()
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [UTType.data]) { result in
             handlePick(result)
         }

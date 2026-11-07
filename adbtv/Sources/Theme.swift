@@ -1,4 +1,11 @@
 import SwiftUI
+import UIKit
+
+/// 收起键盘（任何页面都能用）
+func dismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                    to: nil, from: nil, for: nil)
+}
 
 extension Color {
     init(hex: UInt32, alpha: Double = 1) {
@@ -119,5 +126,24 @@ struct SectionTitle: View {
             .foregroundColor(Theme.textSub)
             .padding(.leading, 4)
             .padding(.bottom, 2)
+    }
+}
+
+
+// MARK: - iOS 16+ 滚动收键盘（低版本自动忽略）
+
+private struct ScrollDismissModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.scrollDismissesKeyboard(.immediately)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func scrollDismissesKeyboardIfAvailable() -> some View {
+        modifier(ScrollDismissModifier())
     }
 }

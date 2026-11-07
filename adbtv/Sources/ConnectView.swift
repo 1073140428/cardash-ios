@@ -13,6 +13,9 @@ struct ConnectView: View {
     @State private var busy = false
     @State private var toast: String?
 
+    private enum Field { case ip, port }
+    @FocusState private var focus: Field?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -29,7 +32,17 @@ struct ConnectView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .background(Theme.bg.ignoresSafeArea())
+        .background(
+            Theme.bg.ignoresSafeArea()
+                .onTapGesture { focus = nil; dismissKeyboard() }
+        )
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 12).onChanged { _ in
+                focus = nil
+                dismissKeyboard()
+            }
+        )
+        .scrollDismissesKeyboardIfAvailable()
         .overlay(alignment: .bottom) {
             if let t = toast {
                 Text(t)
@@ -99,6 +112,7 @@ struct ConnectView: View {
 
             HStack(spacing: 10) {
                 TextField("192.168.0.26", text: $host)
+                    .focused($focus, equals: .ip)
                     .keyboardType(.numbersAndPunctuation)
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
@@ -109,6 +123,7 @@ struct ConnectView: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.fieldBorder, lineWidth: 1))
 
                 TextField("5555", value: $port, formatter: NumberFormatter())
+                    .focused($focus, equals: .port)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 15))
@@ -119,6 +134,8 @@ struct ConnectView: View {
             }
 
             Button {
+                focus = nil
+                dismissKeyboard()
                 Task {
                     busy = true
                     if adb.isConnected { adb.disconnect() }
