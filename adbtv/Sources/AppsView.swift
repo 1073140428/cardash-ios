@@ -246,29 +246,46 @@ struct AppsView: View {
             return
         }
         let name = url.lastPathComponent
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        do {
-            let data = try Data(contentsOf: url)
-            // 不强制扩展名：APK 是 zip 结构，校验文件头 PK\x03\x04
-            let isZip = data.count > 4 && data[0] == 0x50 && data[1] == 0x4B
-            guard isZip else {
-                show("这不是 APK 文件（文件头不是 ZIP）")
+        // 立刻给反馈：读取大文件可能要几秒，避免看起来“没反应”
+        show("已选择 \(name)，正在读取…")
+        let service = adb
+
+        Task.detached(priority: .userInitiated) {
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            var data: Data?
+            var readError: String?
+            do {
+                data = try Data(contentsOf: url, options: .mappedIfSafe)
+            } catch {
+                readError = error.localizedDescription
+            }
+
+            guard let apk = data, apk.count > 4 else {
+                await MainActor.run {
+                    show("读取文件失败：\(readError ?? "文件为空")")
+                }
                 return
             }
-            Task {
-                let ok = await adb.install(apk: data, name: name)
+            // APK = ZIP，校验文件头 PK\x03\x04
+            guard apk[0] == 0x50, apk[1] == 0x4B else {
+                await MainActor.run { show("这不是 APK 文件（文件头不是 ZIP）") }
+                return
+            }
+
+            await MainActor.run { show("开始安装 \(name)") }
+            let ok = await service.install(apk: apk, name: name)
+            await MainActor.run {
                 if ok {
                     show("安装成功")
-                } else if let err = adb.installError, !err.isEmpty {
+                } else if let err = service.installError, !err.isEmpty {
                     installErrorText = err
                     showError = true
                 } else {
                     show("安装失败")
                 }
             }
-        } catch {
-            show("读取文件失败：\(error.localizedDescription)")
         }
     }
 
