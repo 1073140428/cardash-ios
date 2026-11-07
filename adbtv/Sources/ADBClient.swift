@@ -82,7 +82,7 @@ final class ADBSocket {
         }
         _ = fcntl(fd, F_SETFL, flags)
 
-        var tv = timeval(tv_sec: 20, tv_usec: 0)
+        var tv = timeval(tv_sec: 60, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
         var one: Int32 = 1
