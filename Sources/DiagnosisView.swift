@@ -94,6 +94,11 @@ struct DiagnosisView: View {
     private var voltOk: Bool { store.volt == 0 || store.volt >= 11.8 }
     private var waterOk: Bool { store.coolant == 0 || store.coolant <= 100 }
     private var fuelOk: Bool { store.fuel == 0 || store.fuel >= 8 }
+    private var dtcCount: Int { Int(store.values["dtc_count"] ?? "0") ?? 0 }
+    private var dtcList: String {
+        let v = store.values["dtc_list"] ?? ""
+        return v.isEmpty ? "已读" : v
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -168,8 +173,9 @@ struct DiagnosisView: View {
                                value: String(format: "%.1f %%", store.throttle), ok: true)
 
                     StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
-                               status: "无",
-                               value: store.connected ? "已读" : "--", ok: true)
+                               status: dtcCount == 0 ? "无" : "\(dtcCount) 个",
+                               value: dtcCount == 0 ? (store.connected ? "已读" : "--") : dtcList,
+                               ok: dtcCount == 0)
                 }
 
                 if let r = result {

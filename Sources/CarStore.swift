@@ -206,6 +206,16 @@ final class CarStore: ObservableObject {
             values["refuel_odo"] = "--"
         }
 
+        // 故障码
+        if let dtc = d["dtc"] as? [String: Any], let codes = dtc["codes"] as? [[String: Any]] {
+            let list = codes.compactMap { $0["code"] as? String }
+            values["dtc_count"] = String(list.count)
+            values["dtc_list"] = list.joined(separator: "、")
+        } else {
+            values["dtc_count"] = "0"
+            values["dtc_list"] = ""
+        }
+
         // 定位
         if let loc = d["location"] as? [String: Any] {
             let la = Self.dbl(loc["lat"])
