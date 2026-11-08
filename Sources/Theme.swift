@@ -248,3 +248,10 @@ struct PressableStyle: ButtonStyle {
             .animation(.interpolatingSpring(stiffness: 380, damping: 13), value: configuration.isPressed)
     }
 }
+
+
+/// 收起键盘（全局可用）
+func dismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                    to: nil, from: nil, for: nil)
+}

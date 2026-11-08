@@ -138,6 +138,7 @@ struct SettingsView: View {
     @AppStorage("base") private var base: String = "https://zhoudapeng.ccwu.cc:8443"
     @AppStorage("token") private var token: String = "Xfwq28aTWjWE7m8hnI9kq5xUeg2Y_vvMUt4QL4KBMYU"
     @State private var saved = false
+    @State private var keyboardUp = false
 
     private var hostText: String {
         let b = (UserDefaults.standard.string(forKey: "base") ?? "")
@@ -148,6 +149,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        ZStack {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
                 PageHeader(title: "连接设置",
@@ -290,6 +292,22 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 14).onChanged { _ in hideKeyboard() }
+        )
+
+        if keyboardUp {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { hideKeyboard() }
+        }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardUp = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardUp = false
         }
     }
 
