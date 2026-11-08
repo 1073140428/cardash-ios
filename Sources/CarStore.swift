@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreLocation
 
-// MARK: - 实体
+// MARK: - 数据项
 
 struct CarItem: Identifiable {
     let id: String
@@ -363,7 +363,7 @@ final class CarStore: ObservableObject {
 
 
 
-    /// 行程曲线：优先下载车机上传到 HA 的 csv，失败再退回 HA 历史采样
+    /// 行程曲线：从车况服务拉降采样序列
     func tripSpeeds(_ trip: Trip) async -> [Double] {
         let series = await tripSeries(trip)
         return series.compactMap { $0["speed"] as? NSNumber }.map { $0.doubleValue }
@@ -381,7 +381,7 @@ final class CarStore: ObservableObject {
         return out
     }
 
-    /// 某段行程内某个实体的采样值
+    /// 某段行程内某项数据的采样值
     func tripSamples(_ trip: Trip, key: String) async -> [Double] {
         let series = await tripSeries(trip)
         return series.compactMap { ($0[key] as? NSNumber)?.doubleValue }

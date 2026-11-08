@@ -27,7 +27,7 @@ struct OverviewView: View {
                             Text("·")
                                 .font(.system(size: 12))
                                 .foregroundColor(Theme.sub)
-                            Text(store.connected ? "HomeAssistant 已连接" : "等待连接 HomeAssistant")
+                            Text(store.connected ? "车况服务已连接" : "等待连接车况服务")
                                 .font(.system(size: 12))
                                 .foregroundColor(Theme.sub)
                             Spacer(minLength: 0)
@@ -151,14 +151,14 @@ struct SettingsView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
                 PageHeader(title: "连接设置",
-                           subtitle: "数据来源：Home Assistant")
+                           subtitle: "数据来源：车况服务")
 
                 CarHero(height: 130)
 
                 SoftCard {
                     VStack(spacing: 14) {
                         HStack {
-                            Text("HomeAssistant 连接状态")
+                            Text("车况服务连接状态")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Theme.ink)
                             Spacer()

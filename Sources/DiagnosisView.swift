@@ -195,7 +195,7 @@ struct DiagnosisView: View {
     }
 
     private func runCheck() -> String {
-        if !store.connected { return "未连接到 Home Assistant，无法诊断。" }
+        if !store.connected { return "未连接到车况服务，无法诊断。" }
         var issues: [String] = []
         if !voltOk { issues.append("电瓶电压偏低（\(String(format: "%.1f", store.volt)) V）") }
         if !waterOk { issues.append("水温偏高（\(String(format: "%.0f", store.coolant)) °C）") }
