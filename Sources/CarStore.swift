@@ -198,6 +198,10 @@ final class CarStore: ObservableObject {
         put("obd_voltage", d["voltage"])
         put("obd_fuel_liters", d["fuel"])
         put("obd_odometer", d["odo"])
+        put("obd_throttle", d["throttle"])
+        put("obd_map", d["map"])
+        put("obd_load", d["eng_load"])
+        put("obd_timing", d["timing"])
         values["obd_state"] = (d["online"] as? Bool ?? false) ? "已连接" : "离线"
 
         // 今日里程 / 上次加油
