@@ -201,15 +201,15 @@ struct CarHero: View {
 
 /// 通用按压反馈：轻微缩小 + 变暗 + 弹簧回弹 + 轻触震动
 struct PressableStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
-    var dim: Double = 0.92
+    var scale: CGFloat = 0.92
+    var dim: Double = 0.80
     var haptic: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
             .opacity(configuration.isPressed ? dim : 1.0)
-            .animation(.interpolatingSpring(stiffness: 320, damping: 18), value: configuration.isPressed)
+            .animation(.interpolatingSpring(stiffness: 380, damping: 13), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { pressed in
                 if pressed && haptic {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()

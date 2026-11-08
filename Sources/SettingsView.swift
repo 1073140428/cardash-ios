@@ -270,6 +270,12 @@ struct SettingsView: View {
                 }
                 .buttonStyle(PressableStyle(scale: 0.97, dim: 0.9))
 
+                Text("CarDash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.sub.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 6)
+
                 PrimaryButton(title: saved ? "已保存" : "保存配置") {
                     hideKeyboard()
                     UserDefaults.standard.set(base.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "base")
