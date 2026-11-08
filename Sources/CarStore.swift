@@ -189,6 +189,34 @@ final class CarStore: ObservableObject {
         put("obd_odometer", d["odo"])
         values["obd_state"] = (d["online"] as? Bool ?? false) ? "已连接" : "离线"
 
+        // 今日里程 / 上次加油
+        if let today = d["today"] as? [String: Any] {
+            let km = Self.dbl(today["distance_km"])
+            let n = Int(Self.dbl(today["trips"]))
+            values["today_km"] = n > 0 ? String(format: "%.1f", km) : "0"
+        } else {
+            values["today_km"] = "--"
+        }
+        if let rf = d["refuel"] as? [String: Any], Self.dbl(rf["odo"]) > 0 {
+            values["refuel_odo"] = String(format: "%.0f", Self.dbl(rf["odo"]))
+        } else {
+            values["refuel_odo"] = "--"
+        }
+
+        // 定位
+        if let loc = d["location"] as? [String: Any] {
+            let la = Self.dbl(loc["lat"])
+            let lo = Self.dbl(loc["lon"])
+            if la != 0 || lo != 0 {
+                lat = la
+                lon = lo
+                locStatus = "已定位"
+                geocode()
+            }
+        } else if lat == 0 && lon == 0 {
+            locStatus = "等待定位数据"
+        }
+
         // 胎压
         if let tireDict = d["tires"] as? [String: Any] {
             let order = ["fl", "fr", "rl", "rr"]
