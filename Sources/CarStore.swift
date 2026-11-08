@@ -190,12 +190,12 @@ final class CarStore: ObservableObject {
         values["obd_state"] = (d["online"] as? Bool ?? false) ? "已连接" : "离线"
 
         // 胎压
-        if let tires = d["tires"] as? [String: Any] {
+        if let tireDict = d["tires"] as? [String: Any] {
             let order = ["fl", "fr", "rl", "rr"]
             let names = ["左前", "右前", "左后", "右后"]
             var out: [TireInfo] = []
             for (i, key) in order.enumerated() {
-                guard let t = tires[key] as? [String: Any] else { continue }
+                guard let t = tireDict[key] as? [String: Any] else { continue }
                 let kpa = Self.dbl(t["kpa"])
                 if kpa <= 0 { continue }
                 out.append(TireInfo(
