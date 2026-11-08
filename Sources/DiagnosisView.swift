@@ -274,7 +274,7 @@ struct DtcSheet: View {
                 }
                 .padding(16)
             }
-            .background(Theme.bg.ignoresSafeArea())
+            .background(Theme.bgMid.ignoresSafeArea())
             .navigationTitle("故障码详情")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
