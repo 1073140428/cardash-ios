@@ -21,6 +21,7 @@ struct TabBar: View {
         HStack(spacing: 2) {
             ForEach(0..<TABS.count, id: \.self) { i in
                 Button(action: {
+                    dismissKeyboard()
                     selected = i
                 }) {
                     VStack(spacing: 3) {
@@ -76,16 +77,14 @@ struct RootView: View {
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .padding(.bottom, 88)
 
-            TabBar(selected: $tab)
-
-            // 键盘弹出时覆盖一层透明遮罩：点屏幕任何地方都能收起键盘
+            // 键盘弹出时覆盖内容区（Tab 栏之上不挡）：点任何地方都能收起键盘
             if keyboardUp {
                 Color.black.opacity(0.001)
-                    .ignoresSafeArea()
                     .contentShape(Rectangle())
                     .onTapGesture { dismissKeyboard() }
-                    .transition(.opacity)
             }
+
+            TabBar(selected: $tab)
         }
         .onAppear { store.start() }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
@@ -94,5 +93,6 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardUp = false
         }
+        .onChange(of: tab) { _ in dismissKeyboard() }
     }
 }
