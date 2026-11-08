@@ -48,8 +48,8 @@ struct OverviewView: View {
                               symbol: "sun.max.fill",
                               tint: Theme.blue)
 
-                    ValueCard(title: "上次加油",
-                              value: store.values["refuel_odo"] ?? "--",
+                    ValueCard(title: "加油后行驶",
+                              value: store.values["refuel_km"] ?? "--",
                               unit: "km",
                               symbol: "fuelpump.fill",
                               tint: Theme.warn)

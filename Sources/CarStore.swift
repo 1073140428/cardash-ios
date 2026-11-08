@@ -198,8 +198,11 @@ final class CarStore: ObservableObject {
             values["today_km"] = "--"
         }
         if let rf = d["refuel"] as? [String: Any], Self.dbl(rf["odo"]) > 0 {
+            let since = Self.dbl(rf["since_km"])
+            values["refuel_km"] = String(format: "%.1f", since)
             values["refuel_odo"] = String(format: "%.0f", Self.dbl(rf["odo"]))
         } else {
+            values["refuel_km"] = "--"
             values["refuel_odo"] = "--"
         }
 
