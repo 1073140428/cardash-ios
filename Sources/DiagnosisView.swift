@@ -107,35 +107,6 @@ struct DiagnosisView: View {
 
                 CarHero(height: 115)
 
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ], spacing: 12) {
-                    StatusCard(symbol: "battery.100", title: "电池系统",
-                               status: voltOk ? "正常" : "偏低",
-                               value: String(format: "%.1f V", store.volt), ok: voltOk)
-
-                    StatusCard(symbol: "thermometer", title: "冷却系统",
-                               status: waterOk ? "正常" : "偏高",
-                               value: String(format: "%.0f °C", store.coolant), ok: waterOk)
-
-                    StatusCard(symbol: "drop.fill", title: "燃油系统",
-                               status: fuelOk ? "正常" : "偏低",
-                               value: String(format: "%.1f L", store.fuel), ok: fuelOk)
-
-                    StatusCard(symbol: "gauge", title: "发动机系统",
-                               status: store.rpm > 0 ? "运转中" : "未启动",
-                               value: String(format: "%.0f rpm", store.rpm), ok: true)
-
-                    StatusCard(symbol: "wind", title: "节气门",
-                               status: store.throttle > 0 ? "工作" : "怠速",
-                               value: String(format: "%.1f %%", store.throttle), ok: true)
-
-                    StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
-                               status: "无",
-                               value: store.connected ? "已读" : "--", ok: true)
-                }
-
                 if !store.tires.isEmpty {
                     SoftCard {
                         VStack(alignment: .leading, spacing: 10) {
@@ -170,6 +141,35 @@ struct DiagnosisView: View {
                             }
                         }
                     }
+                }
+
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12)
+                ], spacing: 12) {
+                    StatusCard(symbol: "battery.100", title: "电池系统",
+                               status: voltOk ? "正常" : "偏低",
+                               value: String(format: "%.1f V", store.volt), ok: voltOk)
+
+                    StatusCard(symbol: "thermometer", title: "冷却系统",
+                               status: waterOk ? "正常" : "偏高",
+                               value: String(format: "%.0f °C", store.coolant), ok: waterOk)
+
+                    StatusCard(symbol: "drop.fill", title: "燃油系统",
+                               status: fuelOk ? "正常" : "偏低",
+                               value: String(format: "%.1f L", store.fuel), ok: fuelOk)
+
+                    StatusCard(symbol: "gauge", title: "发动机系统",
+                               status: store.rpm > 0 ? "运转中" : "未启动",
+                               value: String(format: "%.0f rpm", store.rpm), ok: true)
+
+                    StatusCard(symbol: "wind", title: "节气门",
+                               status: store.throttle > 0 ? "工作" : "怠速",
+                               value: String(format: "%.1f %%", store.throttle), ok: true)
+
+                    StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
+                               status: "无",
+                               value: store.connected ? "已读" : "--", ok: true)
                 }
 
                 if let r = result {
