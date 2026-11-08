@@ -278,27 +278,11 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                 }
 
-                Group {
-                    Text("测试连接")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Theme.blue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Theme.blue.opacity(0.5), lineWidth: 1)
-                        )
-                }
-                .pressable(scale: 0.96, dim: 0.75) {
+                PrimaryButton(title: "测试连接") {
                     hideKeyboard()
                     Task { await store.testConnection() }
                 }
 
-                Text("CarDash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
-                    .font(.system(size: 11))
-                    .foregroundColor(Theme.sub.opacity(0.7))
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 6)
 
                 PrimaryButton(title: saved ? "已保存" : "保存配置") {
                     hideKeyboard()
@@ -311,6 +295,12 @@ struct SettingsView: View {
                     }
                 }
                 .padding(.top, 2)
+                Text("CarDash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.sub.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .padding(.bottom, 4)
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
