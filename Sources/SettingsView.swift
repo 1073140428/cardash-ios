@@ -139,6 +139,7 @@ struct SettingsView: View {
     @AppStorage("token") private var token: String = "Xfwq28aTWjWE7m8hnI9kq5xUeg2Y_vvMUt4QL4KBMYU"
     @State private var saved = false
     @State private var keyboardUp = false
+    @State private var inputRect: CGRect = .zero
 
     private var hostText: String {
         let b = (UserDefaults.standard.string(forKey: "base") ?? "")
@@ -207,6 +208,15 @@ struct SettingsView: View {
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Theme.bgMid))
                     }
+                    .background(
+                        GeometryReader { g in
+                            Color.clear.preference(key: InputRectKey.self,
+                                                   value: g.frame(in: .global))
+                        }
+                    )
+                }
+                .onPreferenceChange(InputRectKey.self) { r in
+                    if r != inputRect { inputRect = r }
                 }
 
                 SoftCard {
@@ -298,9 +308,23 @@ struct SettingsView: View {
         )
 
         if keyboardUp {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture { hideKeyboard() }
+            GeometryReader { geo in
+                let originY = geo.frame(in: .global).minY
+                let holeTop = max(0, inputRect.minY - originY)
+                let holeH = max(0, min(inputRect.height, geo.size.height - holeTop))
+                VStack(spacing: 0) {
+                    Color.black.opacity(0.001)
+                        .frame(height: holeTop)
+                        .contentShape(Rectangle())
+                        .onTapGesture { hideKeyboard() }
+                    Color.clear
+                        .frame(height: holeH)
+                        .allowsHitTesting(false)
+                    Color.black.opacity(0.001)
+                        .contentShape(Rectangle())
+                        .onTapGesture { hideKeyboard() }
+                }
+            }
         }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
@@ -328,5 +352,14 @@ struct SettingsView: View {
                 .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+
+struct InputRectKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let n = nextValue()
+        if n != .zero { value = n }
     }
 }
