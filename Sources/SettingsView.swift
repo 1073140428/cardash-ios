@@ -268,7 +268,7 @@ struct SettingsView: View {
                                 .stroke(Theme.blue.opacity(0.5), lineWidth: 1)
                         )
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(PressableStyle(scale: 0.97, dim: 0.9))
 
                 PrimaryButton(title: saved ? "已保存" : "保存配置") {
                     hideKeyboard()
