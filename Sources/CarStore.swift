@@ -53,6 +53,15 @@ struct TireInfo: Identifiable, Codable {
     var bar: Double { kpa / 100.0 }
 }
 
+struct DtcItem: Identifiable {
+    let id = UUID()
+    let code: String
+    let desc: String
+    let title: String
+    let causes: String
+    let checks: String
+}
+
 private struct HAPoint: Decodable {
     let state: String
 }
@@ -75,6 +84,8 @@ final class CarStore: ObservableObject {
     @Published var tiresStale = false          // true = 当前显示的是上次缓存的数据
     @Published var tiresCachedAt: Date? = nil  // 缓存时间
     @Published var trips: [Trip] = []
+    @Published var dtcItems: [DtcItem] = []
+    @Published var dtcAt: Date? = nil
     @Published var tripsLoading = false
     @Published var tripsError = ""
 
@@ -211,7 +222,16 @@ final class CarStore: ObservableObject {
             let list = codes.compactMap { $0["code"] as? String }
             values["dtc_count"] = String(list.count)
             values["dtc_list"] = list.joined(separator: "、")
+            dtcItems = codes.map { c in
+                DtcItem(code: (c["code"] as? String) ?? "",
+                        desc: (c["desc"] as? String) ?? "",
+                        title: (c["title"] as? String) ?? "",
+                        causes: (c["causes"] as? String) ?? "",
+                        checks: (c["checks"] as? String) ?? "")
+            }
+            if let t = dtc["ts"] as? NSNumber { dtcAt = Date(timeIntervalSince1970: t.doubleValue / 1000) }
         } else {
+            dtcItems = []
             values["dtc_count"] = "0"
             values["dtc_list"] = ""
         }

@@ -90,6 +90,7 @@ private func shortTime(_ d: Date) -> String {
 struct DiagnosisView: View {
     @EnvironmentObject var store: CarStore
     @State private var result: String? = nil
+    @State private var showDtc = false
 
     private var voltOk: Bool { store.volt == 0 || store.volt >= 11.8 }
     private var waterOk: Bool { store.coolant == 0 || store.coolant <= 100 }
@@ -172,10 +173,15 @@ struct DiagnosisView: View {
                                status: store.throttle > 0 ? "工作" : "怠速",
                                value: String(format: "%.1f %%", store.throttle), ok: true)
 
-                    StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
-                               status: dtcCount == 0 ? "无" : "\(dtcCount) 个",
-                               value: dtcCount == 0 ? (store.connected ? "已读" : "--") : dtcList,
-                               ok: dtcCount == 0)
+                    Button {
+                        if dtcCount > 0 { showDtc = true }
+                    } label: {
+                        StatusCard(symbol: "checkmark.shield.fill", title: "故障码",
+                                   status: dtcCount == 0 ? "无" : "\(dtcCount) 个",
+                                   value: dtcCount == 0 ? (store.connected ? "已读" : "--") : dtcList,
+                                   ok: dtcCount == 0)
+                    }
+                    .buttonStyle(PressableStyle(scale: 0.96, dim: 0.85))
                 }
 
                 if let r = result {
@@ -198,6 +204,9 @@ struct DiagnosisView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
+        .sheet(isPresented: $showDtc) {
+            DtcSheet(items: store.dtcItems, at: store.dtcAt)
+        }
     }
 
     private func runCheck() -> String {
@@ -208,5 +217,84 @@ struct DiagnosisView: View {
         if !fuelOk { issues.append("油量偏低（\(String(format: "%.1f", store.fuel)) L）") }
         if issues.isEmpty { return "诊断完成：电压、水温、油量均在正常范围，未发现异常。" }
         return "诊断完成，发现 " + String(issues.count) + " 项提示：" + issues.joined(separator: "；")
+    }
+}
+
+
+// MARK: - 故障码详情
+
+struct DtcSheet: View {
+    let items: [DtcItem]
+    let at: Date?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    ForEach(items) { d in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Text(d.code)
+                                    .font(.system(size: 17, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.red)
+                                if !d.title.isEmpty {
+                                    Text(d.title)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(Theme.ink)
+                                }
+                                Spacer()
+                            }
+                            if !d.desc.isEmpty {
+                                Text(d.desc)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Theme.ink)
+                            }
+                            if !d.causes.isEmpty {
+                                row("可能原因", d.causes)
+                            }
+                            if !d.checks.isEmpty {
+                                row("检查项", d.checks)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Theme.bgMid)
+                        )
+                    }
+
+                    if let t = at {
+                        Text("读取时间 " + t.formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.sub)
+                            .padding(.top, 4)
+                    }
+                }
+                .padding(16)
+            }
+            .background(Theme.bg.ignoresSafeArea())
+            .navigationTitle("故障码详情")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func row(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(Theme.sub)
+            Text(value)
+                .font(.system(size: 13))
+                .foregroundColor(Theme.ink.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
