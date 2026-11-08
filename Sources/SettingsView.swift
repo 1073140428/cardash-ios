@@ -254,10 +254,7 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                 }
 
-                Button(action: {
-                    hideKeyboard()
-                    Task { await store.testConnection() }
-                }) {
+                Group {
                     Text("测试连接")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Theme.blue)
@@ -268,7 +265,10 @@ struct SettingsView: View {
                                 .stroke(Theme.blue.opacity(0.5), lineWidth: 1)
                         )
                 }
-                .buttonStyle(PressableStyle(scale: 0.97, dim: 0.9))
+                .pressable(scale: 0.96, dim: 0.75) {
+                    hideKeyboard()
+                    Task { await store.testConnection() }
+                }
 
                 Text("CarDash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
                     .font(.system(size: 11))

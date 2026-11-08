@@ -133,7 +133,6 @@ struct PrimaryButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
@@ -145,8 +144,7 @@ struct PrimaryButton: View {
                                              startPoint: .leading, endPoint: .trailing))
                 )
                 .shadow(color: Theme.blue.opacity(0.28), radius: 12, x: 0, y: 8)
-        }
-        .buttonStyle(PressableStyle())
+                .pressable { action() }
     }
 }
 
@@ -197,9 +195,47 @@ struct CarHero: View {
 }
 
 
-// MARK: - 点按动画
 
-/// 通用按压反馈：轻微缩小 + 变暗 + 弹簧回弹 + 轻触震动
+// MARK: - 点按动画（按下即触发，不等系统判定）
+
+/// ScrollView 里系统会延迟按压高亮，这里用 DragGesture(minimumDistance: 0)
+/// 直接拿触摸按下事件，做到“手指一落就有反馈”。
+struct PressableTap: ViewModifier {
+    let action: () -> Void
+    var scale: CGFloat = 0.92
+    var dim: Double = 0.80
+
+    @GestureState private var pressed = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(pressed ? scale : 1.0)
+            .opacity(pressed ? dim : 1.0)
+            .animation(.interpolatingSpring(stiffness: 420, damping: 14), value: pressed)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .updating($pressed) { _, state, _ in state = true }
+                    .onEnded { value in
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        if dx < 14 && dy < 14 {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            action()
+                        }
+                    }
+            )
+    }
+}
+
+extension View {
+    func pressable(scale: CGFloat = 0.92, dim: Double = 0.80,
+                   action: @escaping () -> Void) -> some View {
+        modifier(PressableTap(action: action, scale: scale, dim: dim))
+    }
+}
+
+// 旧样式保留（其它地方可能引用），但已不再是主要交互
 struct PressableStyle: ButtonStyle {
     var scale: CGFloat = 0.92
     var dim: Double = 0.80
@@ -210,10 +246,5 @@ struct PressableStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? scale : 1.0)
             .opacity(configuration.isPressed ? dim : 1.0)
             .animation(.interpolatingSpring(stiffness: 380, damping: 13), value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { pressed in
-                if pressed && haptic {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
-            }
     }
 }
