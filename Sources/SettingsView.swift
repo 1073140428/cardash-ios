@@ -136,7 +136,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: CarStore
     @EnvironmentObject var appearance: Appearance
     @AppStorage("base") private var base: String = "https://zhoudapeng.ccwu.cc:8443"
-    @AppStorage("token") private var token: String = ""
+    @AppStorage("token") private var token: String = "Xfwq28aTWjWE7m8hnI9kq5xUeg2Y_vvMUt4QL4KBMYU"
     @State private var saved = false
 
     private var hostText: String {
