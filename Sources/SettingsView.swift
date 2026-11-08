@@ -135,7 +135,7 @@ struct MapPin: Identifiable {
 struct SettingsView: View {
     @EnvironmentObject var store: CarStore
     @EnvironmentObject var appearance: Appearance
-    @AppStorage("base") private var base: String = ""
+    @AppStorage("base") private var base: String = "https://zhoudapeng.ccwu.cc:8443"
     @AppStorage("token") private var token: String = ""
     @State private var saved = false
 
@@ -184,10 +184,10 @@ struct SettingsView: View {
 
                 SoftCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("服务器地址")
+                        Text("服务地址")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(Theme.sub)
-                        TextField("http://your-ha:8123", text: $base)
+                        TextField("https://zhoudapeng.ccwu.cc:8443", text: $base)
                             .keyboardType(.URL)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
@@ -195,7 +195,7 @@ struct SettingsView: View {
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Theme.bgMid))
 
-                        Text("长期访问令牌")
+                        Text("访问令牌")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(Theme.sub)
                         TextField("eyJhbGci...", text: $token)
