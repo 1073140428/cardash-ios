@@ -42,6 +42,18 @@ struct OverviewView: View {
                     GridItem(.flexible(), spacing: 10),
                     GridItem(.flexible(), spacing: 10)
                 ], spacing: 10) {
+                    ValueCard(title: "今日里程",
+                              value: store.values["today_km"] ?? "--",
+                              unit: "km",
+                              symbol: "sun.max.fill",
+                              tint: Theme.blue)
+
+                    ValueCard(title: "上次加油",
+                              value: store.values["refuel_odo"] ?? "--",
+                              unit: "km",
+                              symbol: "fuelpump.fill",
+                              tint: Theme.warn)
+
                     ForEach(overviewItems) { item in
                         ValueCard(title: item.name,
                                   value: store.values[item.id] ?? "--",
