@@ -60,6 +60,7 @@ struct TabBar: View {
 struct RootView: View {
     @EnvironmentObject var store: CarStore
     @State private var tab = 1
+    @State private var keyboardUp = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -76,7 +77,22 @@ struct RootView: View {
             .padding(.bottom, 88)
 
             TabBar(selected: $tab)
+
+            // 键盘弹出时覆盖一层透明遮罩：点屏幕任何地方都能收起键盘
+            if keyboardUp {
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
+                    .transition(.opacity)
+            }
         }
         .onAppear { store.start() }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardUp = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardUp = false
+        }
     }
 }
