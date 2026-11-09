@@ -278,23 +278,23 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                 }
 
-                PrimaryButton(title: "测试连接") {
-                    hideKeyboard()
-                    Task { await store.testConnection() }
-                }
+                HStack(spacing: 10) {
+                    PrimaryButton(title: "测试连接") {
+                        hideKeyboard()
+                        Task { await store.testConnection() }
+                    }
 
-
-                PrimaryButton(title: saved ? "已保存" : "保存配置") {
-                    hideKeyboard()
-                    UserDefaults.standard.set(base.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "base")
-                    UserDefaults.standard.set(token.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "token")
-                    saved = true
-                    Task {
-                        await store.refresh()
-                        saved = false
+                    PrimaryButton(title: saved ? "已保存" : "保存设置") {
+                        hideKeyboard()
+                        UserDefaults.standard.set(base.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "base")
+                        UserDefaults.standard.set(token.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "token")
+                        saved = true
+                        Task {
+                            await store.refresh()
+                            saved = false
+                        }
                     }
                 }
-                .padding(.top, 2)
                 Text("CarDash \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))")
                     .font(.system(size: 11))
                     .foregroundColor(Theme.sub.opacity(0.7))
