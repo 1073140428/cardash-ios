@@ -22,7 +22,10 @@ struct TabBar: View {
             ForEach(0..<TABS.count, id: \.self) { i in
                 Button(action: {
                     dismissKeyboard()
-                    selected = i
+                    // 用和滑动翻页一致的动画切页
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        selected = i
+                    }
                 }) {
                     VStack(spacing: 3) {
                         Image(systemName: TABS[i].symbol)
