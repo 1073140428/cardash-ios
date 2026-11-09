@@ -68,7 +68,7 @@ struct TireCell: View {
                     .font(.system(size: 11))
                     .foregroundColor(Theme.sub)
             }
-            Text(String(format: "%.0f°C · %.1fV", t.tempC, t.battery))
+            Text(String(format: "%.0f°C · ", t.tempC) + battText(t.battery))
                 .font(.system(size: 11))
                 .foregroundColor(Theme.sub)
         }
@@ -303,4 +303,12 @@ struct DtcSheet: View {
 func unitOrDash(_ v: Double?, _ f: String, _ unit: String) -> String {
     guard let v = v else { return "--" }
     return String(format: f, v) + unit
+}
+
+/// 胎压传感器电池：设备多按 0.1V 上报（26 → 2.6V），兼容 mV 与直接伏特
+func battText(_ v: Double) -> String {
+    if v <= 0 { return "--" }
+    if v >= 20 && v <= 45 { return String(format: "%.1fV", v / 10) }
+    if v > 100 { return String(format: "%.2fV", v / 1000) }
+    return String(format: "%.2fV", v)
 }
