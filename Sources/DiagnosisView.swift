@@ -155,23 +155,23 @@ struct DiagnosisView: View {
                 ], spacing: 12) {
                     StatusCard(symbol: "battery.100", title: "电池系统",
                                status: voltOk ? "正常" : "偏低",
-                               value: String(format: "%.1f V", store.volt), ok: voltOk)
+                               value: unitOrDash(store.voltOpt, "%.1f", " V"), ok: voltOk)
 
                     StatusCard(symbol: "thermometer", title: "冷却系统",
                                status: waterOk ? "正常" : "偏高",
-                               value: String(format: "%.0f °C", store.coolant), ok: waterOk)
+                               value: unitOrDash(store.coolantOpt, "%.0f", " °C"), ok: waterOk)
 
                     StatusCard(symbol: "drop.fill", title: "燃油系统",
                                status: fuelOk ? "正常" : "偏低",
-                               value: String(format: "%.1f L", store.fuel), ok: fuelOk)
+                               value: unitOrDash(store.fuelOpt, "%.1f", " L"), ok: fuelOk)
 
                     StatusCard(symbol: "gauge", title: "发动机系统",
                                status: store.rpm > 0 ? "运转中" : "未启动",
-                               value: String(format: "%.0f rpm", store.rpm), ok: true)
+                               value: unitOrDash(store.rpmOpt, "%.0f", " rpm"), ok: true)
 
                     StatusCard(symbol: "wind", title: "节气门",
                                status: store.throttle > 0 ? "工作" : "怠速",
-                               value: String(format: "%.1f %%", store.throttle), ok: true)
+                               value: unitOrDash(store.throttleOpt, "%.1f", " %"), ok: true)
 
                     Button {
                         if dtcCount > 0 { showDtc = true }
@@ -297,4 +297,10 @@ struct DtcSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+/// 没数据 → "--"，有数据 → 数值 + 单位
+func unitOrDash(_ v: Double?, _ f: String, _ unit: String) -> String {
+    guard let v = v else { return "--" }
+    return String(format: f, v) + unit
 }

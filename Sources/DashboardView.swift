@@ -3,14 +3,15 @@ import SwiftUI
 // MARK: - 弧形仪表
 
 struct ArcGauge: View {
-    let value: Double
+    let value: Double?
     let maxValue: Double
     let title: String
     let unit: String
     var primary: Bool = false
 
     private var fraction: Double {
-        min(max(value, 0), maxValue) / max(maxValue, 1)
+        guard let v = value else { return 0 }
+        return min(max(v, 0), maxValue) / max(maxValue, 1)
     }
 
     var body: some View {
@@ -36,7 +37,7 @@ struct ArcGauge: View {
                 Text(title)
                     .font(.system(size: primary ? 15 : 12, weight: .medium))
                     .foregroundColor(Theme.sub)
-                Text(String(format: "%.0f", value))
+                Text(value == nil ? "--" : String(format: "%.0f", value!))
                     .font(.system(size: primary ? 68 : 34, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.ink)
                     .minimumScaleFactor(0.4)
@@ -47,6 +48,12 @@ struct ArcGauge: View {
             }
         }
     }
+}
+
+/// 没数据 → "--"，真实 0 → "0.0"
+func fmtOrDash(_ v: Double?, _ f: String) -> String {
+    guard let v = v else { return "--" }
+    return String(format: f, v)
 }
 
 // MARK: - 小数值卡
@@ -106,11 +113,11 @@ struct DashboardView: View {
                 CarHero(height: 118)
 
                 HStack(spacing: 10) {
-                    ArcGauge(value: store.speed, maxValue: 220,
+                    ArcGauge(value: store.speedOpt, maxValue: 220,
                              title: "车速", unit: "km/h")
                         .frame(height: 150)
 
-                    ArcGauge(value: store.rpm, maxValue: 8000,
+                    ArcGauge(value: store.rpmOpt, maxValue: 8000,
                              title: "转速", unit: "rpm")
                         .frame(height: 150)
                 }
@@ -120,16 +127,16 @@ struct DashboardView: View {
                     GridItem(.flexible(), spacing: 10)
                 ], spacing: 10) {
                     ValueCard(title: "节气门",
-                              value: String(format: "%.1f", store.throttle),
+                              value: fmtOrDash(store.throttleOpt, "%.1f"),
                               unit: "%", symbol: "wind")
                     ValueCard(title: "进气压力",
-                              value: String(format: "%.0f", store.map),
+                              value: fmtOrDash(store.mapOpt, "%.0f"),
                               unit: "kPa", symbol: "arrow.down.circle", tint: Theme.good)
                     ValueCard(title: "发动机负荷",
-                              value: String(format: "%.1f", store.load),
+                              value: fmtOrDash(store.loadOpt, "%.1f"),
                               unit: "%", symbol: "chart.bar.fill")
                     ValueCard(title: "点火提前角",
-                              value: String(format: "%.1f", store.timing),
+                              value: fmtOrDash(store.timingOpt, "%.1f"),
                               unit: "°", symbol: "bolt.fill")
                 }
 

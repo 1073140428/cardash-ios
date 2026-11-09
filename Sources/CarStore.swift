@@ -500,6 +500,16 @@ final class CarStore: ObservableObject {
     var maf: Double { number("obd_maf") ?? 0 }
     var fuel: Double { number("obd_fuel_liters") ?? 0 }
 
+    var speedOpt: Double?   { number("obd_speed") }
+    var rpmOpt: Double?     { number("obd_rpm") }
+    var coolantOpt: Double? { number("obd_coolant") }
+    var throttleOpt: Double?{ number("obd_throttle") }
+    var mapOpt: Double?     { number("obd_map") }
+    var loadOpt: Double?    { number("obd_load") }
+    var timingOpt: Double?  { number("obd_timing") }
+    var voltOpt: Double?    { number("obd_voltage") }
+    var fuelOpt: Double?    { number("obd_fuel_liters") }
+
     var obdState: String { values["obd_state"] ?? "未连接" }
     var driving: Bool { speed > 1 }
 
