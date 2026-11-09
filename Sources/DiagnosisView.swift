@@ -106,7 +106,7 @@ struct DiagnosisView: View {
             VStack(spacing: 14) {
                 PageHeader(
                     title: "车况诊断",
-                    subtitle: "基于最近一次上传的数据",
+                    subtitle: store.updatedText,
                     badge: store.connected ? "已连接" : "未连接",
                     badgeOn: store.connected
                 )

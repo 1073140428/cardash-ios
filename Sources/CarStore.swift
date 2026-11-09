@@ -79,6 +79,7 @@ final class CarStore: ObservableObject {
     @Published var connected = false
     @Published var message = ""
     @Published var lastUpdate: Date? = nil
+    @Published var dataTs: Date? = nil     // 最后一条采样的时间（服务端 ts）
 
     @Published var tires: [TireInfo] = []
     @Published var tiresStale = false          // true = 当前显示的是上次缓存的数据
@@ -169,6 +170,9 @@ final class CarStore: ObservableObject {
             guard let d = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
             reachable = true
             connected = true
+            if let t = d["ts"] as? NSNumber, t.doubleValue > 0 {
+                dataTs = Date(timeIntervalSince1970: t.doubleValue / 1000)
+            }
             applyLive(d)
             lastUpdate = Date()
             message = values["obd_speed"] == nil
@@ -545,10 +549,11 @@ final class CarStore: ObservableObject {
     var obdState: String { values["obd_state"] ?? "未连接" }
     var driving: Bool { speed > 1 }
 
+    /// 与网页端一致：显示最后一条采样的日期时间（数据本身的时间，不是请求时间）
     var updatedText: String {
-        guard let t = lastUpdate else { return "尚未更新" }
-        let s = Int(Date().timeIntervalSince(t))
-        if s < 60 { return "更新于 \(max(s, 0)) 秒前" }
-        return "更新于 \(s / 60) 分钟前"
+        guard let t = dataTs else { return "尚未更新" }
+        let f = DateFormatter()
+        f.dateFormat = "MM-dd HH:mm"
+        return "最后更新 " + f.string(from: t)
     }
 }
