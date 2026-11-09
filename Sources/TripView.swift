@@ -161,6 +161,10 @@ struct TripDetailView: View {
     let trip: Trip
     @EnvironmentObject var store: CarStore
     @State private var speeds: [Double] = []
+    @State private var track: [TrackPoint] = []
+    @State private var cursor = 0
+    @State private var playing = false
+    @State private var timer: Timer? = nil
     @State private var loading = true
     @Environment(\.presentationMode) private var presentationMode
 
@@ -176,6 +180,45 @@ struct TripDetailView: View {
                             Text("\(trip.durationMin) 分钟 · \(String(format: "%.1f", trip.distanceKm)) km")
                                 .font(.system(size: 13))
                                 .foregroundColor(Theme.sub)
+                        }
+                    }
+
+                    if !track.isEmpty {
+                        SoftCard(padding: 10) {
+                            VStack(spacing: 8) {
+                                TripMapView(points: track, cursor: cursor)
+                                    .frame(height: 200)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                HStack(spacing: 8) {
+                                    Button {
+                                        togglePlay()
+                                    } label: {
+                                        Text(playing ? "⏸ 暂停" : "▶ 回放")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 7)
+                                            .background(Capsule().fill(Theme.blue))
+                                    }
+                                    Slider(value: Binding(
+                                        get: { Double(cursor) },
+                                        set: { v in
+                                            stopPlay()
+                                            cursor = min(track.count - 1, max(0, Int(v)))
+                                        }
+                                    ), in: 0...Double(max(track.count - 1, 1)))
+                                    Text(clockText)
+                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                        .foregroundColor(Theme.sub)
+                                }
+
+                                HStack(spacing: 8) {
+                                    miniStat("车速", value: curSpeed, unit: "km/h")
+                                    miniStat("转速", value: curRpm, unit: "rpm")
+                                    miniStat("水温", value: curCoolant, unit: "°C")
+                                }
+                            }
                         }
                     }
 
@@ -216,12 +259,69 @@ struct TripDetailView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .onDisappear { stopPlay() }
         .onAppear {
             loading = true
             Task {
-                speeds = await store.tripSpeeds(trip)
+                let d = await store.tripDetail(trip)
+                speeds = d.speeds
+                track = d.track
+                cursor = 0
                 loading = false
             }
         }
+    }
+
+    // MARK: - 回放
+
+    private var curPoint: TrackPoint? {
+        guard !track.isEmpty else { return nil }
+        return track[min(cursor, track.count - 1)]
+    }
+    private var curSpeed: String { curPoint.map { String(format: "%.0f", $0.speed) } ?? "--" }
+    private var curRpm: String { curPoint.map { String(format: "%.0f", $0.rpm) } ?? "--" }
+    private var curCoolant: String { curPoint.map { String(format: "%.0f", $0.coolant) } ?? "--" }
+
+    private var clockText: String {
+        guard let p = curPoint else { return "--:--" }
+        let d = Date(timeIntervalSince1970: p.ts / 1000)
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: d)
+    }
+
+    private func miniStat(_ title: String, value: String, unit: String) -> some View {
+        VStack(spacing: 2) {
+            Text(title).font(.system(size: 10)).foregroundColor(Theme.sub)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value).font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.ink)
+                Text(unit).font(.system(size: 9)).foregroundColor(Theme.sub)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.bgMid))
+    }
+
+    private func togglePlay() {
+        if playing { stopPlay(); return }
+        guard track.count > 1 else { return }
+        if cursor >= track.count - 1 { cursor = 0 }
+        playing = true
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { _ in
+            if cursor >= track.count - 1 {
+                stopPlay()
+            } else {
+                cursor += 1
+            }
+        }
+    }
+
+    private func stopPlay() {
+        playing = false
+        timer?.invalidate()
+        timer = nil
     }
 }

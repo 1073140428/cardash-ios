@@ -432,6 +432,34 @@ final class CarStore: ObservableObject {
 
 
 
+    /// 行程详情：一次请求拿到车速曲线 + GPS 轨迹
+    func tripDetail(_ trip: Trip) async -> (speeds: [Double], track: [TrackPoint]) {
+        guard configured, let url = URL(string: base + "/api/trips/" + trip.id) else { return ([], []) }
+        do {
+            let (data, http) = try await Net.get(url, token: token)
+            guard http.statusCode == 200,
+                  let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return ([], [])
+            }
+            let series = (root["series"] as? [[String: Any]]) ?? []
+            let speeds = series.compactMap { ($0["speed"] as? NSNumber)?.doubleValue }
+            let raw = (root["track"] as? [[String: Any]]) ?? []
+            let track: [TrackPoint] = raw.compactMap { p in
+                let lat = (p["wgs_lat"] as? NSNumber)?.doubleValue ?? (p["lat"] as? NSNumber)?.doubleValue
+                let lon = (p["wgs_lon"] as? NSNumber)?.doubleValue ?? (p["lon"] as? NSNumber)?.doubleValue
+                guard let la = lat, let lo = lon, abs(la) <= 90, abs(lo) <= 180, !(la == 0 && lo == 0) else { return nil }
+                return TrackPoint(ts: (p["ts"] as? NSNumber)?.doubleValue ?? 0,
+                                  lat: la, lon: lo,
+                                  speed: (p["speed"] as? NSNumber)?.doubleValue ?? 0,
+                                  rpm: (p["rpm"] as? NSNumber)?.doubleValue ?? 0,
+                                  coolant: (p["coolant"] as? NSNumber)?.doubleValue ?? 0)
+            }
+            return (speeds, track)
+        } catch {
+            return ([], [])
+        }
+    }
+
     /// 行程曲线：从车况服务拉降采样序列
     func tripSpeeds(_ trip: Trip) async -> [Double] {
         let series = await tripSeries(trip)
