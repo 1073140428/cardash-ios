@@ -64,7 +64,8 @@ struct TripMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         let co = context.coordinator
-        if co.builtCount != points.count {
+        co.night = night
+        if co.builtCount != points.count || co.nightDrawn != night {
             co.rebuild(map, points: points)
         }
         co.moveCar(to: cursor, in: map, points: points)
@@ -74,11 +75,14 @@ struct TripMapView: UIViewRepresentable {
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         var builtCount = -1
+        var night = false
+        var nightDrawn = false
         private let car = CarAnnotation(CLLocationCoordinate2D(latitude: 0, longitude: 0))
         private var carAdded = false
 
         func rebuild(_ map: MKMapView, points: [TrackPoint]) {
             builtCount = points.count
+            nightDrawn = night
             for ov in map.overlays where ov is ColoredPolyline { map.removeOverlay(ov) }
             for ov in map.overlays {
                 if let t = ov as? ThemeTileOverlay, t.night != night {
