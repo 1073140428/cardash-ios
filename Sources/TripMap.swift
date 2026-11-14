@@ -42,13 +42,15 @@ final class CarAnnotation: NSObject, MKAnnotation {
 struct TripMapView: UIViewRepresentable {
     let points: [TrackPoint]
     let cursor: Int
+    var night: Bool = false
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
         // 底图：高德瓦片（与服务端网页同一个源，坐标系 GCJ-02）
-        let tpl = "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
-        let tile = MKTileOverlay(urlTemplate: tpl.replacingOccurrences(of: "{s}", with: "1"))
+        let tpl = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+        let tile = ThemeTileOverlay(urlTemplate: tpl)
+        tile.night = night
         tile.canReplaceMapContent = true
         tile.maximumZ = 18
         tile.minimumZ = 3
@@ -78,6 +80,12 @@ struct TripMapView: UIViewRepresentable {
         func rebuild(_ map: MKMapView, points: [TrackPoint]) {
             builtCount = points.count
             for ov in map.overlays where ov is ColoredPolyline { map.removeOverlay(ov) }
+            for ov in map.overlays {
+                if let t = ov as? ThemeTileOverlay, t.night != night {
+                    t.night = night
+                    map.renderer(for: t)?.setNeedsDisplay()
+                }
+            }
             map.removeAnnotations(map.annotations)
             carAdded = false
 
@@ -232,6 +240,7 @@ struct LocationMapView: UIViewRepresentable {
     let lat: Double      // 已是 GCJ
     let lon: Double
     var span: Double = 0.006
+    var night: Bool = false
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
@@ -239,7 +248,8 @@ struct LocationMapView: UIViewRepresentable {
         map.isPitchEnabled = false
         map.pointOfInterestFilter = .excludingAll
         let tpl = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
-        let tile = MKTileOverlay(urlTemplate: tpl)
+        let tile = ThemeTileOverlay(urlTemplate: tpl)
+        tile.night = night
         tile.canReplaceMapContent = true
         tile.maximumZ = 18
         map.addOverlay(tile, level: .aboveRoads)
@@ -248,8 +258,11 @@ struct LocationMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        for ov in map.overlays where ov is MKTileOverlay {
-            if let r = map.renderer(for: ov) as? MKTileOverlayRenderer { r.alpha = 1 }
+        for ov in map.overlays {
+            if let t = ov as? ThemeTileOverlay, t.night != night {
+                t.night = night
+                map.renderer(for: t)?.setNeedsDisplay()
+            }
         }
         map.removeAnnotations(map.annotations)
         let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
@@ -279,4 +292,44 @@ struct LocationMapView: UIViewRepresentable {
             return v
         }
     }
+}
+
+
+/// 高德瓦片：夜间模式时把瓦片压成深色（高德没有公开的深色栅格样式，只能本地处理）
+final class ThemeTileOverlay: MKTileOverlay {
+    var night: Bool = false
+    private let cache = NSCache<NSString, NSData>()
+
+    override func loadTile(at path: MKTileOverlayPath, result: @escaping (Data?, Error?) -> Void) {
+        let key = "n\(night ? 1 : 0)_\(path.z)_\(path.x)_\(path.y)" as NSString
+        if let hit = cache.object(forKey: key) { result(hit as Data, nil); return }
+        super.loadTile(at: path) { data, err in
+            guard self.night, let data, let img = UIImage(data: data),
+                  let dark = ThemeTileOverlay.darken(img), let png = dark.pngData() else {
+                result(data, err); return
+            }
+            self.cache.setObject(png as NSData, forKey: key)
+            result(png, nil)
+        }
+    }
+
+    static func darken(_ img: UIImage) -> UIImage? {
+        guard let ci = CIImage(image: img) else { return img }
+        let ctx = CIContext(options: nil)
+        // 经典的夜间地图做法：反相 + 色相转 180°，保持道路/水系的色彩关系
+        guard let inv = CIFilter(name: "CIColorInvert", parameters: [kCIInputImageKey: ci]),
+              let invOut = inv.outputImage,
+              let hue = CIFilter(name: "CIHueAdjust", parameters: [kCIInputImageKey: invOut,
+                                                                  kCIInputAngleKey: Double.pi]),
+              let hueOut = hue.outputImage,
+              let ctl = CIFilter(name: "CIColorControls", parameters: [
+                  kCIInputImageKey: hueOut,
+                  kCIInputSaturationKey: 0.55,
+                  kCIInputBrightnessKey: -0.05,
+                  kCIInputContrastKey: 0.88]),
+              let out = ctl.outputImage,
+              let cg = ctx.createCGImage(out, from: ci.extent) else { return img }
+        return UIImage(cgImage: cg)
+    }
+
 }
