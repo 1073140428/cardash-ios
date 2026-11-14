@@ -483,7 +483,7 @@ final class CarStore: ObservableObject {
     /// 近 7 天每日里程（含今天）。轮询很频繁，这里自己限流：5 分钟最多拉一次
     func loadWeekKm(force: Bool = false) async {
         if !force, let t = lastWeekLoad, Date().timeIntervalSince(t) < 300 { return }
-        guard configured, let url = URL(string: base + "/api/stats/week?days=7") else { return }
+        guard configured, let url = URL(string: base + "/api/stats/week?days=7&include_today=0") else { return }
         lastWeekLoad = Date()
         do {
             let (data, http) = try await Net.get(url, token: token)
