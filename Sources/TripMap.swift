@@ -197,3 +197,86 @@ extension UIColor {
                   alpha: 1)
     }
 }
+
+
+/// WGS-84 → GCJ-02（高德瓦片要用 GCJ，直接喂 WGS 会偏约 586 米）
+func wgs2gcj(_ lat: Double, _ lon: Double) -> (Double, Double) {
+    let a = 6378245.0, ee = 0.00669342162296594323
+    func tLat(_ x: Double, _ y: Double) -> Double {
+        var r = -100.0 + 2.0*x + 3.0*y + 0.2*y*y + 0.1*x*y + 0.2*sqrt(abs(x))
+        r += (20.0*sin(6.0*x*Double.pi) + 20.0*sin(2.0*x*Double.pi)) * 2.0/3.0
+        r += (20.0*sin(y*Double.pi) + 40.0*sin(y/3.0*Double.pi)) * 2.0/3.0
+        r += (160.0*sin(y/12.0*Double.pi) + 320*sin(y*Double.pi/30.0)) * 2.0/3.0
+        return r
+    }
+    func tLon(_ x: Double, _ y: Double) -> Double {
+        var r = 300.0 + x + 2.0*y + 0.1*x*x + 0.1*x*y + 0.1*sqrt(abs(x))
+        r += (20.0*sin(6.0*x*Double.pi) + 20.0*sin(2.0*x*Double.pi)) * 2.0/3.0
+        r += (20.0*sin(x*Double.pi) + 40.0*sin(x/3.0*Double.pi)) * 2.0/3.0
+        r += (150.0*sin(x/12.0*Double.pi) + 300.0*sin(x/30.0*Double.pi)) * 2.0/3.0
+        return r
+    }
+    if lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271 { return (lat, lon) }
+    var dLat = tLat(lon - 105.0, lat - 35.0)
+    var dLon = tLon(lon - 105.0, lat - 35.0)
+    let radLat = lat / 180.0 * Double.pi
+    var magic = sin(radLat); magic = 1 - ee*magic*magic
+    let sqrtMagic = sqrt(magic)
+    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * Double.pi)
+    dLon = (dLon * 180.0) / (a / sqrtMagic * cos(radLat) * Double.pi)
+    return (lat + dLat, lon + dLon)
+}
+
+/// 车辆当前位置小地图：高德瓦片 + 单点气泡（与网页端同一套底图和坐标）
+struct LocationMapView: UIViewRepresentable {
+    let lat: Double      // 已是 GCJ
+    let lon: Double
+    var span: Double = 0.006
+
+    func makeUIView(context: Context) -> MKMapView {
+        let map = MKMapView()
+        map.isRotateEnabled = false
+        map.isPitchEnabled = false
+        map.pointOfInterestFilter = .excludingAll
+        let tpl = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+        let tile = MKTileOverlay(urlTemplate: tpl)
+        tile.canReplaceMapContent = true
+        tile.maximumZ = 18
+        map.addOverlay(tile, level: .aboveRoads)
+        map.delegate = context.coordinator
+        return map
+    }
+
+    func updateUIView(_ map: MKMapView, context: Context) {
+        for ov in map.overlays where ov is MKTileOverlay {
+            if let r = map.renderer(for: ov) as? MKTileOverlayRenderer { r.alpha = 1 }
+        }
+        map.removeAnnotations(map.annotations)
+        let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let pin = MKPointAnnotation()
+        pin.coordinate = c
+        map.addAnnotation(pin)
+        var region = MKCoordinateRegion(center: c,
+            span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span))
+        region = map.regionThatFits(region)
+        map.setRegion(region, animated: false)
+    }
+
+    func makeCoordinator() -> LocCoord { LocCoord() }
+
+    final class LocCoord: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let t = overlay as? MKTileOverlay { return MKTileOverlayRenderer(tileOverlay: t) }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            let id = "locpin"
+            let v = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView
+                ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+            v.annotation = annotation
+            v.markerTintColor = .systemBlue
+            v.glyphImage = UIImage(systemName: "car.fill")
+            return v
+        }
+    }
+}
