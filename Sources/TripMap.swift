@@ -51,7 +51,8 @@ struct TripMapView: UIViewRepresentable {
         let tile = MKTileOverlay(urlTemplate: tpl.replacingOccurrences(of: "{s}", with: "1"))
         tile.canReplaceMapContent = true
         tile.maximumZ = 18
-        map.addOverlay(tile, level: .aboveLabels)
+        tile.minimumZ = 3
+        map.addOverlay(tile, level: .aboveRoads)
         map.isRotateEnabled = false
         map.isPitchEnabled = false
         map.pointOfInterestFilter = .excludingAll
@@ -91,7 +92,7 @@ struct TripMapView: UIViewRepresentable {
                 line.color = trackColor(v)
                 segs.append((line, line.color))
             }
-            map.addOverlays(segs.map { $0.0 })
+            map.addOverlays(segs.map { $0.0 }, level: .aboveLabels)
 
             // 起终点
             let start = MKPointAnnotation()
