@@ -47,14 +47,8 @@ struct TripMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        // 底图：高德瓦片（与服务端网页同一个源，坐标系 GCJ-02）
-        let tpl = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
-        let tile = ThemeTileOverlay(urlTemplate: tpl)
-        tile.night = night
-        tile.canReplaceMapContent = true
-        tile.maximumZ = 18
-        tile.minimumZ = 3
-        map.addOverlay(tile, level: .aboveRoads)
+        // 底图：苹果地图（国内底图数据也是高德，坐标需为 GCJ-02）
+        map.overrideUserInterfaceStyle = night ? .dark : .light
         map.isRotateEnabled = false
         map.isPitchEnabled = false
         map.pointOfInterestFilter = .excludingAll
@@ -64,6 +58,7 @@ struct TripMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         let co = context.coordinator
+        map.overrideUserInterfaceStyle = night ? .dark : .light
         co.night = night
         if co.builtCount != points.count || co.nightDrawn != night {
             co.rebuild(map, points: points)
@@ -84,12 +79,7 @@ struct TripMapView: UIViewRepresentable {
             builtCount = points.count
             nightDrawn = night
             for ov in map.overlays where ov is ColoredPolyline { map.removeOverlay(ov) }
-            for ov in map.overlays {
-                if let t = ov as? ThemeTileOverlay, t.night != night {
-                    t.night = night
-                    map.renderer(for: t)?.setNeedsDisplay()
-                }
-            }
+
             map.removeAnnotations(map.annotations)
             carAdded = false
 
@@ -251,23 +241,13 @@ struct LocationMapView: UIViewRepresentable {
         map.isRotateEnabled = false
         map.isPitchEnabled = false
         map.pointOfInterestFilter = .excludingAll
-        let tpl = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
-        let tile = ThemeTileOverlay(urlTemplate: tpl)
-        tile.night = night
-        tile.canReplaceMapContent = true
-        tile.maximumZ = 18
-        map.addOverlay(tile, level: .aboveRoads)
+        map.overrideUserInterfaceStyle = night ? .dark : .light
         map.delegate = context.coordinator
         return map
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        for ov in map.overlays {
-            if let t = ov as? ThemeTileOverlay, t.night != night {
-                t.night = night
-                map.renderer(for: t)?.setNeedsDisplay()
-            }
-        }
+        map.overrideUserInterfaceStyle = night ? .dark : .light
         map.removeAnnotations(map.annotations)
         let c = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         let pin = MKPointAnnotation()
