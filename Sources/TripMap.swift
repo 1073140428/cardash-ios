@@ -11,6 +11,7 @@ struct TrackPoint: Identifiable, Equatable {
     let speed: Double
     let rpm: Double
     let coolant: Double
+    var brk: Bool = false      // 与前一点之间有 GPS 断档：不画连线
 
     var coord: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: lat, longitude: lon)
@@ -78,6 +79,7 @@ struct TripMapView: UIViewRepresentable {
             // 分段着色
             var segs: [(MKPolyline, UIColor)] = []
             for i in 1..<points.count {
+                if points[i].brk { continue }   // GPS 断档，两段分开画，不连直线
                 let v = max(0, max(points[i-1].speed, points[i].speed))
                 var coords = [points[i-1].coord, points[i].coord]
                 let line = ColoredPolyline(coordinates: &coords, count: 2)
