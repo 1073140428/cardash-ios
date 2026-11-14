@@ -32,16 +32,17 @@ struct TabBar: View {
                     .fill(Theme.blue)
                     .frame(width: tileW, height: tileH)
                     .offset(x: inset + CGFloat(selected) * tileW, y: inset)
-                    .animation(.interactiveSpring(response: 0.26, dampingFraction: 0.9), value: selected)
                     .allowsHitTesting(false)
 
                 HStack(spacing: 0) {
                     ForEach(0..<TABS.count, id: \.self) { i in
                         Button(action: {
                             dismissKeyboard()
-                            // 不加 withAnimation：滑块自己按 value 变化做动画，
-                            // 页面切换交给 TabView 的翻页动画，避免两套动画互相抢帧
-                            selected = i
+                            // 用 withAnimation 让 TabView 翻页有动画；
+                            // 滑块只做 offset 动画（合成层），不会再抢帧
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selected = i
+                            }
                         }) {
                             VStack(spacing: 3) {
                                 Image(systemName: TABS[i].symbol)
