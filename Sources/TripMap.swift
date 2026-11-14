@@ -46,6 +46,12 @@ struct TripMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
+        // 底图：高德瓦片（与服务端网页同一个源，坐标系 GCJ-02）
+        let tpl = "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+        let tile = MKTileOverlay(urlTemplate: tpl.replacingOccurrences(of: "{s}", with: "1"))
+        tile.canReplaceMapContent = true
+        tile.maximumZ = 18
+        map.addOverlay(tile, level: .aboveLabels)
         map.isRotateEnabled = false
         map.isPitchEnabled = false
         map.pointOfInterestFilter = .excludingAll
@@ -70,7 +76,7 @@ struct TripMapView: UIViewRepresentable {
 
         func rebuild(_ map: MKMapView, points: [TrackPoint]) {
             builtCount = points.count
-            map.removeOverlays(map.overlays)
+            for ov in map.overlays where ov is ColoredPolyline { map.removeOverlay(ov) }
             map.removeAnnotations(map.annotations)
             carAdded = false
 
@@ -79,7 +85,6 @@ struct TripMapView: UIViewRepresentable {
             // 分段着色
             var segs: [(MKPolyline, UIColor)] = []
             for i in 1..<points.count {
-                if points[i].brk { continue }   // GPS 断档，两段分开画，不连直线
                 let v = max(0, max(points[i-1].speed, points[i].speed))
                 var coords = [points[i-1].coord, points[i].coord]
                 let line = ColoredPolyline(coordinates: &coords, count: 2)
@@ -136,6 +141,9 @@ struct TripMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let t = overlay as? MKTileOverlay {
+                return MKTileOverlayRenderer(tileOverlay: t)
+            }
             if let line = overlay as? ColoredPolyline {
                 let r = MKPolylineRenderer(polyline: line)
                 r.strokeColor = line.color
