@@ -452,11 +452,13 @@ final class CarStore: ObservableObject {
                 let lat = (p["wgs_lat"] as? NSNumber)?.doubleValue ?? (p["lat"] as? NSNumber)?.doubleValue
                 let lon = (p["wgs_lon"] as? NSNumber)?.doubleValue ?? (p["lon"] as? NSNumber)?.doubleValue
                 guard let la = lat, let lo = lon, abs(la) <= 90, abs(lo) <= 180, !(la == 0 && lo == 0) else { return nil }
+                let brk = (p["brk"] as? NSNumber)?.boolValue ?? (p["brk"] as? Bool) ?? false
                 return TrackPoint(ts: (p["ts"] as? NSNumber)?.doubleValue ?? 0,
                                   lat: la, lon: lo,
                                   speed: (p["speed"] as? NSNumber)?.doubleValue ?? 0,
                                   rpm: (p["rpm"] as? NSNumber)?.doubleValue ?? 0,
-                                  coolant: (p["coolant"] as? NSNumber)?.doubleValue ?? 0)
+                                  coolant: (p["coolant"] as? NSNumber)?.doubleValue ?? 0,
+                                  brk: brk)
             }
             return (speeds, track)
         } catch {
