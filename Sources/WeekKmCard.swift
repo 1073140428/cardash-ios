@@ -33,10 +33,17 @@ struct WeekKmCard: View {
                     legendItem(color: tealSoft, dashed: true, text: "日均 \(fmt(avg)) km")
                 }
 
-                GeometryReader { geo in
-                    chart(size: geo.size)
+                if days.isEmpty {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Theme.sub.opacity(0.06))
+                        .frame(height: 150)
+                        .overlay(ProgressView().scaleEffect(0.8))
+                } else {
+                    GeometryReader { geo in
+                        chart(size: geo.size)
+                    }
+                    .frame(height: 150)
                 }
-                .frame(height: 150)
 
                 HStack(spacing: 0) {
                     ForEach(days) { d in
@@ -141,8 +148,9 @@ struct WeekKmCard: View {
                     .overlay(Circle().stroke(teal, lineWidth: 2))
                     .position(pt)
 
-                if days[i].km > 0 {
-                    Text(fmt(days[i].km))
+                let km = days.indices.contains(i) ? days[i].km : 0
+                if km > 0 {
+                    Text(fmt(km))
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .foregroundColor(Theme.ink)
                         .position(x: pt.x, y: max(8, pt.y - 12))
