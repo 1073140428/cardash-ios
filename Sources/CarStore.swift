@@ -501,6 +501,33 @@ final class CarStore: ObservableObject {
         if let t = lastGeocode, Date().timeIntervalSince(t) < 120 { return }
         geocoderBusy = true
         lastGeocode = Date()
+
+        // 优先用服务端高德逆地理（GCJ 坐标，和网页同源）
+        let g = wgs2gcj(lat, lon)
+        if !base.isEmpty,
+           let url = URL(string: base + "/api/geo?lat=" + String(format: "%.6f", g.0) + "&lon=" + String(format: "%.6f", g.1)) {
+            Task { [weak self] in
+                guard let self else { return }
+                if let (data, http) = try? await Net.get(url, token: self.token),
+                   http.statusCode == 200,
+                   let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   (root["ok"] as? Bool) == true,
+                   let addr = root["address"] as? String, !addr.isEmpty {
+                    await MainActor.run {
+                        self.locAddress = addr
+                        self.geocoderBusy = false
+                    }
+                    return
+                }
+                await MainActor.run { self.appleGeocode() }
+            }
+            return
+        }
+        appleGeocode()
+    }
+
+    /// 兜底：苹果本地逆地理（WGS）
+    private func appleGeocode() {
         let loc = CLLocation(latitude: lat, longitude: lon)
         CLGeocoder().reverseGeocodeLocation(loc) { placemarks, _ in
             Task { @MainActor in
