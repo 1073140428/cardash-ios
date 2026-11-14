@@ -98,19 +98,11 @@ struct OverviewView: View {
                 }
 
                 if store.lat != 0 && store.lon != 0 {
-                    Map(
-                        coordinateRegion: .constant(MKCoordinateRegion(
-                            center: CLLocationCoordinate2D(latitude: store.lat, longitude: store.lon),
-                            span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
-                        )),
-                        annotationItems: [MapPin(lat: store.lat, lon: store.lon)]
-                    ) { p in
-                        MapMarker(
-                            coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon),
-                            tint: .blue
-                        )
-                    }
-                    .frame(height: 112)
+                    // 底图是高德瓦片(GCJ)，这里把车机上报的 WGS 换算后再画
+                    LocationMapView(lat: wgs2gcj(store.lat, store.lon).0,
+                                    lon: wgs2gcj(store.lat, store.lon).1,
+                                    span: 0.006)
+                        .frame(height: 112)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     Text(store.locAddress.isEmpty
