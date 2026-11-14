@@ -449,8 +449,9 @@ final class CarStore: ObservableObject {
             let speeds = series.compactMap { ($0["speed"] as? NSNumber)?.doubleValue }
             let raw = (root["track"] as? [[String: Any]]) ?? []
             let track: [TrackPoint] = raw.compactMap { p in
-                let lat = (p["wgs_lat"] as? NSNumber)?.doubleValue ?? (p["lat"] as? NSNumber)?.doubleValue
-                let lon = (p["wgs_lon"] as? NSNumber)?.doubleValue ?? (p["lon"] as? NSNumber)?.doubleValue
+                // 底图是高德瓦片(GCJ-02)，必须用 GCJ 坐标，才能和网页端完全一致
+                let lat = (p["lat"] as? NSNumber)?.doubleValue ?? (p["wgs_lat"] as? NSNumber)?.doubleValue
+                let lon = (p["lon"] as? NSNumber)?.doubleValue ?? (p["wgs_lon"] as? NSNumber)?.doubleValue
                 guard let la = lat, let lo = lon, abs(la) <= 90, abs(lo) <= 180, !(la == 0 && lo == 0) else { return nil }
                 let brk = (p["brk"] as? NSNumber)?.boolValue ?? (p["brk"] as? Bool) ?? false
                 return TrackPoint(ts: (p["ts"] as? NSNumber)?.doubleValue ?? 0,
