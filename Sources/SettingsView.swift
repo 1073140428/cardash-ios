@@ -6,6 +6,7 @@ import UIKit
 
 struct OverviewView: View {
     @EnvironmentObject var store: CarStore
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -101,7 +102,7 @@ struct OverviewView: View {
                     // 底图是高德瓦片(GCJ)，这里把车机上报的 WGS 换算后再画
                     LocationMapView(lat: wgs2gcj(store.lat, store.lon).0,
                                     lon: wgs2gcj(store.lat, store.lon).1,
-                                    span: 0.006)
+                                    span: 0.006, night: scheme == .dark)
                         .frame(height: 112)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
