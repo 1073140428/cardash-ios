@@ -13,44 +13,53 @@ let TABS: [TabItem] = [
     TabItem(title: "设置", symbol: "gearshape.fill")
 ]
 
+/// 底部导航：滑块用 offset 动画（只动合成层，比 matchedGeometryEffect 省很多）
 struct TabBar: View {
     @Binding var selected: Int
-    @Namespace private var pill
+
+    private let barHeight: CGFloat = 64
+    private let inset: CGFloat = 6
 
     var body: some View {
-        HStack(spacing: 2) {
-            ForEach(0..<TABS.count, id: \.self) { i in
-                Button(action: {
-                    dismissKeyboard()
-                    // 用和滑动翻页一致的动画切页
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        selected = i
-                    }
-                }) {
-                    VStack(spacing: 3) {
-                        Image(systemName: TABS[i].symbol)
-                            .font(.system(size: 18, weight: .semibold))
-                        Text(TABS[i].title)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(i == selected ? .white : Theme.sub)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        ZStack {
-                            if i == selected {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(Theme.blue)
-                                    .matchedGeometryEffect(id: "pill", in: pill)
+        GeometryReader { geo in
+            let count = CGFloat(TABS.count)
+            let tileW = max(1, (geo.size.width - inset * 2) / count)
+            let tileH = max(1, geo.size.height - inset * 2)
+
+            ZStack(alignment: .topLeading) {
+                // 滑块
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Theme.blue)
+                    .frame(width: tileW, height: tileH)
+                    .offset(x: inset + CGFloat(selected) * tileW, y: inset)
+                    .animation(.interactiveSpring(response: 0.26, dampingFraction: 0.9), value: selected)
+                    .allowsHitTesting(false)
+
+                HStack(spacing: 0) {
+                    ForEach(0..<TABS.count, id: \.self) { i in
+                        Button(action: {
+                            dismissKeyboard()
+                            // 不加 withAnimation：滑块自己按 value 变化做动画，
+                            // 页面切换交给 TabView 的翻页动画，避免两套动画互相抢帧
+                            selected = i
+                        }) {
+                            VStack(spacing: 3) {
+                                Image(systemName: TABS[i].symbol)
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text(TABS[i].title)
+                                    .font(.system(size: 10, weight: .medium))
                             }
+                            .foregroundColor(i == selected ? .white : Theme.sub)
+                            .frame(width: tileW, height: tileH)
+                            .contentShape(Rectangle())
                         }
-                    )
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
-                .buttonStyle(PlainButtonStyle())
+                .padding(inset)
             }
         }
-        .padding(6)
-        .animation(.easeInOut(duration: 0.3), value: selected)
+        .frame(height: barHeight)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Theme.card.opacity(0.96))
