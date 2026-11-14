@@ -72,6 +72,14 @@ private struct HAStateResp: Decodable {
 
 // MARK: - 数据层
 
+struct DayKm: Identifiable {
+    let id = UUID()
+    let md: String
+    let weekday: String
+    let km: Double
+    let isToday: Bool
+}
+
 @MainActor
 final class CarStore: ObservableObject {
 
@@ -85,6 +93,10 @@ final class CarStore: ObservableObject {
     @Published var tiresStale = false          // true = 当前显示的是上次缓存的数据
     @Published var tiresCachedAt: Date? = nil  // 缓存时间
     @Published var trips: [Trip] = []
+    @Published var weekKm: [DayKm] = []
+    @Published var weekTotal: Double = 0
+    @Published var weekAvg: Double = 0
+    private var lastWeekLoad: Date?
     @Published var dtcItems: [DtcItem] = []
     @Published var dtcAt: Date? = nil
     @Published var tripsLoading = false
@@ -141,6 +153,7 @@ final class CarStore: ObservableObject {
     }
 
     func refresh() async {
+        await loadWeekKm()
         guard configured else {
             message = "请到「设置」填写服务地址和令牌"
             connected = false
@@ -464,6 +477,29 @@ final class CarStore: ObservableObject {
             return (speeds, track)
         } catch {
             return ([], [])
+        }
+    }
+
+    /// 近 7 天每日里程（含今天）。轮询很频繁，这里自己限流：5 分钟最多拉一次
+    func loadWeekKm(force: Bool = false) async {
+        if !force, let t = lastWeekLoad, Date().timeIntervalSince(t) < 300 { return }
+        guard configured, let url = URL(string: base + "/api/stats/week?days=7") else { return }
+        lastWeekLoad = Date()
+        do {
+            let (data, http) = try await Net.get(url, token: token)
+            guard http.statusCode == 200,
+                  let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let arr = root["days"] as? [[String: Any]] else { return }
+            let list: [DayKm] = arr.map { d in
+                DayKm(md: (d["md"] as? String) ?? "",
+                      weekday: (d["weekday"] as? String) ?? "",
+                      km: (d["km"] as? NSNumber)?.doubleValue ?? 0,
+                      isToday: (d["is_today"] as? NSNumber)?.boolValue ?? false)
+            }
+            self.weekKm = list
+            self.weekTotal = (root["total_km"] as? NSNumber)?.doubleValue ?? 0
+            self.weekAvg = (root["avg_km"] as? NSNumber)?.doubleValue ?? 0
+        } catch {
         }
     }
 
