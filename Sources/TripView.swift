@@ -158,6 +158,7 @@ struct TripView: View {
 // MARK: - 行程详情
 
 struct TripDetailView: View {
+    @Environment(\.colorScheme) private var scheme
     let trip: Trip
     @EnvironmentObject var store: CarStore
     @State private var speeds: [Double] = []
@@ -186,7 +187,7 @@ struct TripDetailView: View {
                     if !track.isEmpty {
                         SoftCard(padding: 10) {
                             VStack(spacing: 8) {
-                                TripMapView(points: track, cursor: cursor)
+                                TripMapView(points: track, cursor: cursor, night: scheme == .dark)
                                     .frame(height: 200)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
