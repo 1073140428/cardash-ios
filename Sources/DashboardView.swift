@@ -140,6 +140,8 @@ struct DashboardView: View {
                               unit: "°", symbol: "bolt.fill")
                 }
 
+                WeekKmCard(days: store.weekKm, total: store.weekTotal, avg: store.weekAvg)
+
                 PrimaryButton(title: "刷新数据") {
                     Task { await store.refresh() }
                 }
