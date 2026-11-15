@@ -102,24 +102,46 @@ struct DashboardView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 12) {
-                PageHeader(
-                    title: "实时仪表",
-                    subtitle: "\(store.obdState) · \(store.updatedText)",
-                    badge: store.connected ? "已连接" : "未连接",
-                    badgeOn: store.connected
-                )
+            VStack(spacing: 9) {
+                // 顶部：车模缩小放左上，右侧标题 + 在线状态 + 自动刷新胶囊
+                HStack(alignment: .top, spacing: 10) {
+                    Image("car")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 58)
 
-                CarHero(height: 118)
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .trailing, spacing: 7) {
+                        HStack(spacing: 5) {
+                            Text("实时仪表")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(Theme.ink)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Theme.sub.opacity(0.7))
+                            Text(store.connected ? "在线" : "离线")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(store.connected ? Theme.good : Theme.sub)
+                        }
+                        Text(store.connected ? "自动刷新中" : "已断开")
+                            .font(.system(size: 11))
+                            .foregroundColor(Theme.blueDeep)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(Theme.blue.opacity(0.10)))
+                    }
+                }
+                .padding(.top, 2)
 
                 HStack(spacing: 10) {
                     ArcGauge(value: store.speedOpt, maxValue: 220,
                              title: "车速", unit: "km/h")
-                        .frame(height: 150)
+                        .frame(height: 142)
 
                     ArcGauge(value: store.rpmOpt, maxValue: 8000,
                              title: "转速", unit: "rpm")
-                        .frame(height: 150)
+                        .frame(height: 142)
                 }
 
                 LazyVGrid(columns: [
@@ -148,7 +170,7 @@ struct DashboardView: View {
                 .padding(.top, 2)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding(.top, 4)
         }
     }
 }
