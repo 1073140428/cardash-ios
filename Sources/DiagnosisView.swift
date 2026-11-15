@@ -149,6 +149,8 @@ struct DiagnosisView: View {
                     }
                 }
 
+                MaintCard(info: store.maint)
+
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 12),
                     GridItem(.flexible(), spacing: 12)
@@ -204,6 +206,7 @@ struct DiagnosisView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
+        .task { await store.loadMaint() }
         .sheet(isPresented: $showDtc) {
             DtcSheet(items: store.dtcItems, at: store.dtcAt)
         }
