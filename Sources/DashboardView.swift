@@ -102,35 +102,13 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 9) {
-                // 顶部：标题 + 徽标同行，下面最后更新时间（与总览页同款）
-                HStack(alignment: .top, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text("实时仪表")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(Theme.ink)
-                            Text(store.connected ? "已连接" : "未连接")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(store.connected ? Theme.blue : Theme.sub)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule().stroke(store.connected ? Theme.blue.opacity(0.6) : Theme.line, lineWidth: 1)
-                                )
-                        }
-                        Text(store.updatedText)
-                            .font(.system(size: 13))
-                            .foregroundColor(Theme.sub)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Image("car")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 58)
-                }
-                .padding(.top, 2)
+                // 顶部：与总览页完全一致的 PageHeader（标题左、徽标右上、副标题）
+                PageHeader(
+                    title: "实时仪表",
+                    subtitle: store.updatedText,
+                    badge: store.connected ? "已连接" : "未连接",
+                    badgeOn: store.connected
+                )
 
                 HStack(spacing: 10) {
                     ArcGauge(value: store.speedOpt, maxValue: 220,
