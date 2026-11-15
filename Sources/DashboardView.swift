@@ -143,7 +143,7 @@ struct DashboardView: View {
 
             }
             .padding(.horizontal, 16)
-            .padding(.top, 4)
+            .padding(.top, 10)
         }
     }
 }
