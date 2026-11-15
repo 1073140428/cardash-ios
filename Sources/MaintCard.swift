@@ -29,6 +29,7 @@ struct MaintInfo: Codable {
     }
 
     var ok: Bool { status != "overdue" }
+    var dueSoon: Bool { status == "due" }
 }
 
 struct MaintRecord: Codable, Identifiable {
@@ -45,6 +46,11 @@ struct MaintCard: View {
     let info: MaintInfo?
 
     private var ok: Bool { info?.ok ?? true }
+    private var dueSoon: Bool { info?.dueSoon ?? false }
+
+    private var badgeText: String { ok ? (dueSoon ? "即将到期" : "正常") : "过期" }
+    private var badgeColor: Color { ok ? (dueSoon ? Theme.warn : Theme.good) : Theme.bad }
+    private var numberColor: Color { ok ? (dueSoon ? Theme.warn : Theme.ink) : Theme.bad }
 
     private var kmText: String {
         guard let m = info else { return "--" }
@@ -82,9 +88,9 @@ struct MaintCard: View {
 
                 HStack(spacing: 12) {
                     MaintCell(big: kmText, unit: "km", caption: kmCaption,
-                              ok: ok, tint: ok ? Theme.ink : Theme.bad)
+                              badge: badgeText, badgeColor: badgeColor, tint: numberColor)
                     MaintCell(big: dayText, unit: "天", caption: dayCaption,
-                              ok: ok, tint: ok ? Theme.ink : Theme.bad)
+                              badge: badgeText, badgeColor: badgeColor, tint: numberColor)
                 }
             }
         }
@@ -95,16 +101,17 @@ private struct MaintCell: View {
     let big: String
     let unit: String
     let caption: String
-    let ok: Bool
+    let badge: String
+    let badgeColor: Color
     let tint: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Spacer(minLength: 0)
-                Text(ok ? "正常" : "过期")
+                Text(badge)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(ok ? Theme.good : Theme.bad)
+                    .foregroundColor(badgeColor)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 3) {
