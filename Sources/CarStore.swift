@@ -97,6 +97,8 @@ final class CarStore: ObservableObject {
     @Published var weekTotal: Double = 0
     @Published var weekAvg: Double = 0
     private var lastWeekLoad: Date?
+    @Published var maint: MaintInfo? = nil
+    private var lastMaintLoad: Date?
     @Published var dtcItems: [DtcItem] = []
     @Published var dtcAt: Date? = nil
     @Published var tripsLoading = false
@@ -150,6 +152,22 @@ final class CarStore: ObservableObject {
     func stop() {
         loop?.cancel()
         loop = nil
+    }
+
+    // MARK: 保养提醒
+    func loadMaint(force: Bool = false) async {
+        guard configured else { return }
+        if !force, let t = lastMaintLoad, Date().timeIntervalSince(t) < 300 { return }
+        guard let url = URL(string: base + "/api/maint") else { return }
+        do {
+            let (data, http) = try await Net.get(url, token: token)
+            guard http.statusCode == 200 else { return }
+            let m = try JSONDecoder().decode(MaintInfo.self, from: data)
+            await MainActor.run {
+                self.maint = m
+                self.lastMaintLoad = Date()
+            }
+        } catch { }
     }
 
     func refresh() async {
