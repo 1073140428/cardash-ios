@@ -91,6 +91,7 @@ struct DiagnosisView: View {
     @EnvironmentObject var store: CarStore
     @State private var result: String? = nil
     @State private var showDtc = false
+    @State private var showRefuel = false
 
     private var voltOk: Bool { store.volt == 0 || store.volt >= 11.8 }
     private var waterOk: Bool { store.coolant == 0 || store.coolant <= 100 }
@@ -151,6 +152,8 @@ struct DiagnosisView: View {
 
                 MaintCard(info: store.maint)
 
+                RefuelCard(items: store.refuelItems) { showRefuel = true }
+
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 12),
                     GridItem(.flexible(), spacing: 12)
@@ -206,7 +209,13 @@ struct DiagnosisView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
         }
-        .task { await store.loadMaint() }
+        .task {
+            await store.loadMaint()
+            await store.loadRefuel()
+        }
+        .sheet(isPresented: $showRefuel) {
+            RefuelSheet(items: store.refuelItems)
+        }
         .sheet(isPresented: $showDtc) {
             DtcSheet(items: store.dtcItems, at: store.dtcAt)
         }
