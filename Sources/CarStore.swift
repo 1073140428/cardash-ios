@@ -435,7 +435,7 @@ final class CarStore: ObservableObject {
 
     /// 行程曲线：从服务端拉降采样序列
     private func tripSeries(_ trip: Trip) async -> [[String: Any]] {
-        guard configured, let url = URL(string: base + "/api/trips/" + trip.id) else { return [] }
+        guard configured, let url = URL(string: base + "/api/trips/" + trip.id + "?track=grasp") else { return [] }
         do {
             let (data, http) = try await Net.get(url, token: token)
             guard http.statusCode == 200,
@@ -451,7 +451,7 @@ final class CarStore: ObservableObject {
 
     /// 行程详情：一次请求拿到车速曲线 + GPS 轨迹
     func tripDetail(_ trip: Trip) async -> (speeds: [Double], track: [TrackPoint]) {
-        guard configured, let url = URL(string: base + "/api/trips/" + trip.id) else { return ([], []) }
+        guard configured, let url = URL(string: base + "/api/trips/" + trip.id + "?track=grasp") else { return ([], []) }
         do {
             let (data, http) = try await Net.get(url, token: token)
             guard http.statusCode == 200,
