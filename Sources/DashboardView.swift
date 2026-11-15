@@ -102,13 +102,13 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 9) {
-                // 顶部：文字在左，车模在右；连接状态与总览页同款徽标
-                HStack(alignment: .center, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 7) {
+                // 顶部：标题/连接状态与总览页同款（26pt 粗体），车模在右
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("实时仪表")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(Theme.ink)
                         HStack(spacing: 6) {
-                            Text("实时仪表")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(Theme.ink)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(Theme.sub.opacity(0.7))
