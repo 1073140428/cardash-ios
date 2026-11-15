@@ -119,6 +119,7 @@ struct DashboardView: View {
                              title: "转速", unit: "rpm")
                         .frame(height: 142)
                 }
+                .padding(.top, 14)
 
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 8),
