@@ -15,38 +15,77 @@ struct ArcGauge: View {
     }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .trim(from: 0, to: 0.667)
-                .stroke(Theme.line,
-                        style: StrokeStyle(lineWidth: primary ? 16 : 12, lineCap: .round))
-                .rotationEffect(.degrees(150))
-                .padding(primary ? 18 : 13)
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            let side = min(w, h)
+            let thick: CGFloat = primary ? 14 : 12
+            let radius = side / 2 - thick / 2 - 2
+            let span = 240.0          // 弧度范围（度）
+            let startDeg = 150.0
 
-            Circle()
-                .trim(from: 0, to: 0.667 * fraction)
-                .stroke(
-                    LinearGradient(colors: [Theme.blueSoft, Theme.blue],
-                                   startPoint: .leading, endPoint: .trailing),
-                    style: StrokeStyle(lineWidth: primary ? 16 : 12, lineCap: .round)
-                )
-                .rotationEffect(.degrees(150))
-                .padding(primary ? 18 : 13)
+            ZStack {
+                // 刻度：主刻度每 1/8，副刻度每 1/40
+                ForEach(0..<41, id: \.self) { i in
+                    let frac = Double(i) / 40.0
+                    let major = i % 5 == 0
+                    Rectangle()
+                        .fill(Theme.sub.opacity(major ? 0.45 : 0.20))
+                        .frame(width: major ? 1.8 : 1.2, height: major ? 7 : 4)
+                        .offset(y: -(radius - thick / 2 - (major ? 9 : 7)))
+                        .rotationEffect(.degrees(startDeg + span * frac))
+                }
 
-            VStack(spacing: 0) {
-                Text(title)
-                    .font(.system(size: primary ? 15 : 12, weight: .medium))
-                    .foregroundColor(Theme.sub)
-                Text(value == nil ? "--" : String(format: "%.0f", value!))
-                    .font(.system(size: primary ? 68 : 34, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.ink)
-                    .minimumScaleFactor(0.4)
-                    .lineLimit(1)
-                Text(unit)
-                    .font(.system(size: primary ? 15 : 10))
-                    .foregroundColor(Theme.sub)
+                // 三个数字（0 / 一半 / 满量程）
+                ForEach(0..<3, id: \.self) { k in
+                    let frac = Double(k) / 2.0
+                    let angle = (startDeg + span * frac - 90) * .pi / 180
+                    let r = radius - 22
+                    Text(scaleLabel(frac))
+                        .font(.system(size: primary ? 11 : 9, weight: .medium))
+                        .foregroundColor(Theme.sub.opacity(0.85))
+                        .position(x: w / 2 + CGFloat(cos(angle)) * r,
+                                  y: h / 2 + CGFloat(sin(angle)) * r)
+                }
+
+                // 底弧
+                Circle()
+                    .trim(from: 0, to: span / 360.0)
+                    .stroke(Theme.line, style: StrokeStyle(lineWidth: thick, lineCap: .round))
+                    .rotationEffect(.degrees(startDeg))
+                    .padding(side / 2 - radius - thick / 2 + 2)
+
+                // 数值弧
+                Circle()
+                    .trim(from: 0, to: span / 360.0 * fraction)
+                    .stroke(
+                        LinearGradient(colors: [Theme.blueSoft, Theme.blue],
+                                       startPoint: .leading, endPoint: .trailing),
+                        style: StrokeStyle(lineWidth: thick, lineCap: .round))
+                    .rotationEffect(.degrees(startDeg))
+                    .padding(side / 2 - radius - thick / 2 + 2)
+
+                VStack(spacing: 0) {
+                    Text(title)
+                        .font(.system(size: primary ? 14 : 11, weight: .medium))
+                        .foregroundColor(Theme.sub)
+                    Text(value == nil ? "--" : String(format: "%.0f", value!))
+                        .font(.system(size: primary ? 46 : 30, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.ink)
+                        .minimumScaleFactor(0.4)
+                        .lineLimit(1)
+                    Text(unit)
+                        .font(.system(size: primary ? 12 : 9))
+                        .foregroundColor(Theme.sub)
+                }
             }
+            .frame(width: w, height: h)
         }
+    }
+
+    private func scaleLabel(_ frac: Double) -> String {
+        let v = maxValue * frac
+        if maxValue >= 1000 { return String(format: "%.0f", v / 1000) }   // 转速用千转
+        return String(format: "%.0f", v)
     }
 }
 
@@ -164,10 +203,6 @@ struct DashboardView: View {
 
                 WeekKmCard(days: store.weekKm, total: store.weekTotal, avg: store.weekAvg)
 
-                PrimaryButton(title: "刷新数据") {
-                    Task { await store.refresh() }
-                }
-                .padding(.top, 2)
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
