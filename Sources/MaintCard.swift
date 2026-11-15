@@ -82,9 +82,9 @@ struct MaintCard: View {
 
                 HStack(spacing: 12) {
                     MaintCell(big: kmText, unit: "km", caption: kmCaption,
-                              ok: ok, tint: Theme.ink)
+                              ok: ok, tint: ok ? Theme.ink : Theme.bad)
                     MaintCell(big: dayText, unit: "天", caption: dayCaption,
-                              ok: ok, tint: ok ? Theme.blue : Theme.bad)
+                              ok: ok, tint: ok ? Theme.ink : Theme.bad)
                 }
             }
         }
