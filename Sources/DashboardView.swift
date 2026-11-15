@@ -102,25 +102,25 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 9) {
-                // 顶部：标题/连接状态与总览页同款（26pt 粗体），车模在右
+                // 顶部：标题 + 徽标同行，下面最后更新时间（与总览页同款）
                 HStack(alignment: .top, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("实时仪表")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(Theme.ink)
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Theme.sub.opacity(0.7))
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Text("实时仪表")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(Theme.ink)
                             Text(store.connected ? "已连接" : "未连接")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(store.connected ? Theme.blue : Theme.sub)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
                                 .background(
                                     Capsule().stroke(store.connected ? Theme.blue.opacity(0.6) : Theme.line, lineWidth: 1)
                                 )
                         }
+                        Text(store.updatedText)
+                            .font(.system(size: 13))
+                            .foregroundColor(Theme.sub)
                     }
 
                     Spacer(minLength: 0)
