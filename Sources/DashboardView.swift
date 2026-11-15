@@ -102,16 +102,9 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 9) {
-                // 顶部：车模缩小放左上，右侧标题 + 在线状态 + 自动刷新胶囊
+                // 顶部：文字在左，车模在右
                 HStack(alignment: .top, spacing: 10) {
-                    Image("car")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 52)
-
-                    Spacer(minLength: 0)
-
-                    VStack(alignment: .trailing, spacing: 7) {
+                    VStack(alignment: .leading, spacing: 7) {
                         HStack(spacing: 5) {
                             Text("实时仪表")
                                 .font(.system(size: 20, weight: .bold))
@@ -130,17 +123,24 @@ struct DashboardView: View {
                             .padding(.vertical, 5)
                             .background(Capsule().fill(Theme.blue.opacity(0.10)))
                     }
+
+                    Spacer(minLength: 0)
+
+                    Image("car")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 58)
                 }
                 .padding(.top, 2)
 
                 HStack(spacing: 10) {
                     ArcGauge(value: store.speedOpt, maxValue: 220,
                              title: "车速", unit: "km/h")
-                        .frame(height: 112)
+                        .frame(height: 142)
 
                     ArcGauge(value: store.rpmOpt, maxValue: 8000,
                              title: "转速", unit: "rpm")
-                        .frame(height: 112)
+                        .frame(height: 142)
                 }
 
                 LazyVGrid(columns: [
