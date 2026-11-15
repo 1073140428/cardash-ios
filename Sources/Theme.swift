@@ -98,28 +98,29 @@ struct ValueCard: View {
     let unit: String
     let symbol: String
     var tint: Color = Theme.blue
+    var compact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: compact ? 3 : 6) {
             HStack(spacing: 5) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: compact ? 12 : 13, weight: .semibold))
                     .foregroundColor(tint)
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: compact ? 12 : 13, weight: .medium))
                     .foregroundColor(Theme.sub)
             }
             Text(value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.system(size: compact ? 22 : 26, weight: .bold, design: .rounded))
                 .foregroundColor(Theme.ink)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
             Text(unit)
-                .font(.system(size: 11))
+                .font(.system(size: compact ? 10 : 11))
                 .foregroundColor(Theme.sub)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(compact ? 11 : 14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Theme.card.opacity(0.92))
