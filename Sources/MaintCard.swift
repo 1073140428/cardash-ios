@@ -68,14 +68,14 @@ struct MaintCard: View {
     }
 
     var body: some View {
-        SoftCard(radius: 24) {
-            VStack(alignment: .leading, spacing: 14) {
+        SoftCard {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Image(systemName: "wrench.and.screwdriver.fill")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(Theme.blue)
                     Text("保养提醒")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Theme.ink)
                     Spacer(minLength: 0)
                 }
@@ -103,31 +103,30 @@ private struct MaintCell: View {
             HStack {
                 Spacer(minLength: 0)
                 Text(ok ? "正常" : "过期")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(ok ? Theme.good : Theme.bad)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(big)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(tint)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 Text(unit)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 11))
                     .foregroundColor(Theme.sub)
             }
 
             Text(caption)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundColor(Theme.sub)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.blue.opacity(0.055))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Theme.bgMid.opacity(0.55))
         )
     }
 }
