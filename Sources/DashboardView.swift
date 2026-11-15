@@ -102,26 +102,25 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 9) {
-                // 顶部：文字在左，车模在右
-                HStack(alignment: .top, spacing: 10) {
+                // 顶部：文字在左，车模在右；连接状态与总览页同款徽标
+                HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 7) {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 6) {
                             Text("实时仪表")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(Theme.ink)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(Theme.sub.opacity(0.7))
-                            Text(store.connected ? "在线" : "离线")
+                            Text(store.connected ? "已连接" : "未连接")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(store.connected ? Theme.good : Theme.sub)
+                                .foregroundColor(store.connected ? Theme.blue : Theme.sub)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule().stroke(store.connected ? Theme.blue.opacity(0.6) : Theme.line, lineWidth: 1)
+                                )
                         }
-                        Text(store.connected ? "自动刷新中" : "已断开")
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.blueDeep)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Capsule().fill(Theme.blue.opacity(0.10)))
                     }
 
                     Spacer(minLength: 0)
