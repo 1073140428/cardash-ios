@@ -98,6 +98,8 @@ final class CarStore: ObservableObject {
     @Published var weekAvg: Double = 0
     private var lastWeekLoad: Date?
     @Published var maint: MaintInfo? = nil
+    @Published var refuelItems: [RefuelItem] = []
+    private var lastRefuelLoad: Date?
     private var lastMaintLoad: Date?
     @Published var dtcItems: [DtcItem] = []
     @Published var dtcAt: Date? = nil
@@ -152,6 +154,25 @@ final class CarStore: ObservableObject {
     func stop() {
         loop?.cancel()
         loop = nil
+    }
+
+    // MARK: 加油记录
+    func loadRefuel(force: Bool = false) async {
+        guard configured else { return }
+        if !force, let t = lastRefuelLoad, Date().timeIntervalSince(t) < 120 { return }
+        guard let url = URL(string: base + "/api/refuel/list?limit=100") else { return }
+        do {
+            let (data, http) = try await Net.get(url, token: token)
+            guard http.statusCode == 200,
+                  let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let arr = root["items"] else { return }
+            let rowsData = try JSONSerialization.data(withJSONObject: arr)
+            let rows = try JSONDecoder().decode([RefuelItem].self, from: rowsData)
+            await MainActor.run {
+                self.refuelItems = rows
+                self.lastRefuelLoad = Date()
+            }
+        } catch { }
     }
 
     // MARK: 保养提醒
