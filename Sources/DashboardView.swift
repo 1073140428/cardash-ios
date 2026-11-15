@@ -18,7 +18,7 @@ struct ArcGauge: View {
         ZStack {
             Circle()
                 .trim(from: 0, to: 0.667)
-                .stroke(Theme.line, style: StrokeStyle(lineWidth: 13, lineCap: .round))
+                .stroke(Theme.gaugeTrack, style: StrokeStyle(lineWidth: 13, lineCap: .round))
                 .rotationEffect(.degrees(150))
                 .padding(13)
 
