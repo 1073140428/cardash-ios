@@ -15,77 +15,37 @@ struct ArcGauge: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width, h = geo.size.height
-            let side = min(w, h)
-            let thick: CGFloat = primary ? 14 : 12
-            let radius = side / 2 - thick / 2 - 2
-            let span = 240.0          // 弧度范围（度）
-            let startDeg = 150.0
+        ZStack {
+            Circle()
+                .trim(from: 0, to: 0.667)
+                .stroke(Theme.line, style: StrokeStyle(lineWidth: 13, lineCap: .round))
+                .rotationEffect(.degrees(150))
+                .padding(13)
 
-            ZStack {
-                // 刻度：主刻度每 1/8，副刻度每 1/40
-                ForEach(0..<41, id: \.self) { i in
-                    let frac = Double(i) / 40.0
-                    let major = i % 5 == 0
-                    Rectangle()
-                        .fill(Theme.sub.opacity(major ? 0.45 : 0.20))
-                        .frame(width: major ? 1.8 : 1.2, height: major ? 7 : 4)
-                        .offset(y: -(radius - thick / 2 - (major ? 9 : 7)))
-                        .rotationEffect(.degrees(startDeg + span * frac))
-                }
+            Circle()
+                .trim(from: 0, to: 0.667 * fraction)
+                .stroke(
+                    LinearGradient(colors: [Theme.blueSoft, Theme.blue],
+                                   startPoint: .leading, endPoint: .trailing),
+                    style: StrokeStyle(lineWidth: 13, lineCap: .round)
+                )
+                .rotationEffect(.degrees(150))
+                .padding(13)
 
-                // 三个数字（0 / 一半 / 满量程）
-                ForEach(0..<3, id: \.self) { k in
-                    let frac = Double(k) / 2.0
-                    let angle = (startDeg + span * frac - 90) * .pi / 180
-                    let r = radius - 22
-                    Text(scaleLabel(frac))
-                        .font(.system(size: primary ? 11 : 9, weight: .medium))
-                        .foregroundColor(Theme.sub.opacity(0.85))
-                        .position(x: w / 2 + CGFloat(cos(angle)) * r,
-                                  y: h / 2 + CGFloat(sin(angle)) * r)
-                }
-
-                // 底弧
-                Circle()
-                    .trim(from: 0, to: span / 360.0)
-                    .stroke(Theme.line, style: StrokeStyle(lineWidth: thick, lineCap: .round))
-                    .rotationEffect(.degrees(startDeg))
-                    .padding(side / 2 - radius - thick / 2 + 2)
-
-                // 数值弧
-                Circle()
-                    .trim(from: 0, to: span / 360.0 * fraction)
-                    .stroke(
-                        LinearGradient(colors: [Theme.blueSoft, Theme.blue],
-                                       startPoint: .leading, endPoint: .trailing),
-                        style: StrokeStyle(lineWidth: thick, lineCap: .round))
-                    .rotationEffect(.degrees(startDeg))
-                    .padding(side / 2 - radius - thick / 2 + 2)
-
-                VStack(spacing: 0) {
-                    Text(title)
-                        .font(.system(size: primary ? 14 : 11, weight: .medium))
-                        .foregroundColor(Theme.sub)
-                    Text(value == nil ? "--" : String(format: "%.0f", value!))
-                        .font(.system(size: primary ? 46 : 30, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.ink)
-                        .minimumScaleFactor(0.4)
-                        .lineLimit(1)
-                    Text(unit)
-                        .font(.system(size: primary ? 12 : 9))
-                        .foregroundColor(Theme.sub)
-                }
+            VStack(spacing: 0) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Theme.sub)
+                Text(value == nil ? "--" : String(format: "%.0f", value!))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.ink)
+                    .minimumScaleFactor(0.4)
+                    .lineLimit(1)
+                Text(unit)
+                    .font(.system(size: 10))
+                    .foregroundColor(Theme.sub)
             }
-            .frame(width: w, height: h)
         }
-    }
-
-    private func scaleLabel(_ frac: Double) -> String {
-        let v = maxValue * frac
-        if maxValue >= 1000 { return String(format: "%.0f", v / 1000) }   // 转速用千转
-        return String(format: "%.0f", v)
     }
 }
 
@@ -147,7 +107,7 @@ struct DashboardView: View {
                     Image("car")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 58)
+                        .frame(height: 52)
 
                     Spacer(minLength: 0)
 
@@ -176,29 +136,29 @@ struct DashboardView: View {
                 HStack(spacing: 10) {
                     ArcGauge(value: store.speedOpt, maxValue: 220,
                              title: "车速", unit: "km/h")
-                        .frame(height: 142)
+                        .frame(height: 112)
 
                     ArcGauge(value: store.rpmOpt, maxValue: 8000,
                              title: "转速", unit: "rpm")
-                        .frame(height: 142)
+                        .frame(height: 112)
                 }
 
                 LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ], spacing: 10) {
+                    GridItem(.flexible(), spacing: 8),
+                    GridItem(.flexible(), spacing: 8)
+                ], spacing: 8) {
                     ValueCard(title: "节气门",
                               value: fmtOrDash(store.throttleOpt, "%.1f"),
-                              unit: "%", symbol: "wind")
+                              unit: "%", symbol: "wind", compact: true)
                     ValueCard(title: "进气压力",
                               value: fmtOrDash(store.mapOpt, "%.0f"),
-                              unit: "kPa", symbol: "arrow.down.circle", tint: Theme.good)
+                              unit: "kPa", symbol: "arrow.down.circle", tint: Theme.good, compact: true)
                     ValueCard(title: "发动机负荷",
                               value: fmtOrDash(store.loadOpt, "%.1f"),
-                              unit: "%", symbol: "chart.bar.fill")
+                              unit: "%", symbol: "chart.bar.fill", compact: true)
                     ValueCard(title: "点火提前角",
                               value: fmtOrDash(store.timingOpt, "%.1f"),
-                              unit: "°", symbol: "bolt.fill")
+                              unit: "°", symbol: "bolt.fill", compact: true)
                 }
 
                 WeekKmCard(days: store.weekKm, total: store.weekTotal, avg: store.weekAvg)
