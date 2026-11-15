@@ -50,6 +50,7 @@ enum Theme {
     // 分隔 / 卡片
     static let line     = dynColor("E4EBF7", "22304A")
     static let card     = dynColor("FFFFFF", "131D31")
+    static let gaugeTrack = dynColor("C4D3EA", "22304A")   // 仪表底圈
     // 状态
     static let good     = dynColor("17A673", "2ED3A0")
     static let warn     = dynColor("F08A24", "FFA53D")
