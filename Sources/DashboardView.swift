@@ -37,7 +37,7 @@ struct ArcGauge: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(Theme.sub)
                 Text(value == nil ? "--" : String(format: "%.0f", value!))
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.ink)
                     .minimumScaleFactor(0.4)
                     .lineLimit(1)
