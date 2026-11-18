@@ -49,17 +49,23 @@ struct SpeedChart: View {
 
 struct TripRow: View {
     let trip: Trip
+    var onToggleFav: () -> Void = {}
+    var onLongPress: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Theme.blue.opacity(0.10))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "car.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Theme.blue)
+            Button(action: onToggleFav) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill((trip.favorite ? Theme.star : Theme.blue).opacity(0.12))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "car.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(trip.favorite ? Theme.star : Theme.blue)
+                }
             }
+            .buttonStyle(.plain)
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in onLongPress() })
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(trip.start) → \(trip.end)")
@@ -69,6 +75,12 @@ struct TripRow: View {
                 Text("\(trip.durationMin) 分钟 · 最高 \(Int(trip.maxSpeed)) km/h")
                     .font(.system(size: 12))
                     .foregroundColor(Theme.sub)
+                if !trip.note.isEmpty {
+                    Text(trip.note)
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.star)
+                        .lineLimit(1)
+                }
             }
 
             Spacer(minLength: 4)
@@ -95,6 +107,12 @@ struct TripView: View {
     @EnvironmentObject var store: CarStore
     @State private var selected: Trip? = nil
     @State private var appeared = false
+    @State private var favOnly = false
+    @State private var noteTrip: Trip? = nil
+    @State private var noteText = ""
+
+    private var shown: [Trip] { favOnly ? store.trips.filter { $0.favorite } : store.trips }
+    private var favCount: Int { store.trips.filter { $0.favorite }.count }
 
     private var totalKm: Double {
         store.trips.reduce(0) { $0 + $1.distanceKm }
@@ -110,8 +128,16 @@ struct TripView: View {
                 HStack(spacing: 10) {
                     ValueCard(title: "行程次数", value: String(store.trips.count),
                               unit: "次", symbol: "car.fill")
-                    ValueCard(title: "累计里程", value: String(format: "%.1f", totalKm),
-                              unit: "km", symbol: "road.lanes")
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { favOnly.toggle() }
+                    } label: {
+                        ValueCard(title: favOnly ? "只看收藏" : "收藏",
+                                  value: String(favCount),
+                                  unit: favOnly ? "趟 · 点一下看全部" : "趟 · 点一下筛选",
+                                  symbol: "star.fill",
+                                  tint: favOnly ? Theme.star : Theme.star.opacity(0.55))
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 if store.tripsLoading {
@@ -122,9 +148,27 @@ struct TripView: View {
                         .foregroundColor(Theme.sub)
                         .padding(.top, 20)
                 } else {
-                    ForEach(store.trips) { t in
-                        TripRow(trip: t)
+                    ForEach(shown) { t in
+                        TripRow(trip: t,
+                                onToggleFav: {
+                                    if t.favorite {
+                                        Task { await store.setTripFavorite(t, fav: false, note: nil) }
+                                    } else {
+                                        noteText = t.note
+                                        noteTrip = t
+                                    }
+                                },
+                                onLongPress: {
+                                    noteText = t.note
+                                    noteTrip = t
+                                })
                             .onTapGesture { selected = t }
+                    }
+                    if favOnly && shown.isEmpty {
+                        Text("还没有收藏的行程，点行程左侧的汽车图标收藏")
+                            .font(.system(size: 12.5))
+                            .foregroundColor(Theme.sub)
+                            .padding(.top, 10)
                     }
                 }
 
@@ -145,6 +189,12 @@ struct TripView: View {
         .sheet(item: $selected) { t in
             TripDetailView(trip: t)
                 .environmentObject(store)
+        }
+        .sheet(item: $noteTrip) { t in
+            NoteEditor(trip: t, text: $noteText) { save in
+                Task { await store.setTripFavorite(t, fav: true, note: save ? noteText : t.note) }
+                noteTrip = nil
+            }
         }
         .onAppear {
             if !appeared {
@@ -324,5 +374,52 @@ struct TripDetailView: View {
         playing = false
         timer?.invalidate()
         timer = nil
+    }
+}
+
+
+// MARK: - 备注编辑
+
+struct NoteEditor: View {
+    let trip: Trip
+    @Binding var text: String
+    var onDone: (Bool) -> Void
+    @Environment(\.presentationMode) private var presentationMode
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("收藏这趟行程").font(.system(size: 17, weight: .bold)).foregroundColor(Theme.ink)
+            Text("\(trip.start) 出发 · \(trip.durationMin) 分钟 · \(trip.distanceKm < 0.05 ? "<0.1" : String(format: "%.1f", trip.distanceKm)) km")
+                .font(.system(size: 12)).foregroundColor(Theme.sub)
+
+            TextField("备注（可留空），例如：带孩子去净月潭", text: $text)
+                .font(.system(size: 14))
+                .padding(11)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.bgMid))
+
+            HStack(spacing: 10) {
+                Button("取消") {
+                    presentationMode.wrappedValue.dismiss()
+                    onDone(false)
+                }
+                .font(.system(size: 14))
+                .foregroundColor(Theme.sub)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.bgMid))
+
+                Button("收藏") {
+                    presentationMode.wrappedValue.dismiss()
+                    onDone(true)
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.star))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(20)
     }
 }
