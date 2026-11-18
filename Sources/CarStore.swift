@@ -39,6 +39,8 @@ struct Trip: Identifiable {
     let maxCoolant: Double
     let minVoltage: Double
     let file: String
+    var favorite: Bool = false
+    var note: String = ""
 }
 
 struct TireInfo: Identifiable, Codable {
@@ -414,6 +416,25 @@ final class CarStore: ObservableObject {
 
     // MARK: 行程列表
 
+    /// 收藏 / 取消收藏（可带备注）
+    func setTripFavorite(_ trip: Trip, fav: Bool, note: String?) async {
+        guard configured, let url = URL(string: base + "/api/trips/\(trip.id)/fav") else { return }
+        var body: [String: Any] = ["fav": fav]
+        if let n = note { body["note"] = n }
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 15
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !token.isEmpty { req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
+        req.httpBody = data
+        _ = try? await Net.data(for: req)
+        if let i = trips.firstIndex(where: { $0.id == trip.id }) {
+            trips[i].favorite = fav
+            if let n = note { trips[i].note = n }
+        }
+    }
+
     func loadTrips() async {
         guard configured else { tripsError = "未配置"; return }
         tripsLoading = true
@@ -474,7 +495,9 @@ final class CarStore: ObservableObject {
                     avgSpeed: Self.dbl(r["avg_speed"]),
                     maxCoolant: Self.dbl(r["max_coolant"]),
                     minVoltage: Self.dbl(r["min_voltage"]),
-                    file: (r["csv_name"] as? String) ?? ""
+                    file: (r["csv_name"] as? String) ?? "",
+                    favorite: (r["favorite"] as? Bool) ?? ((r["favorite"] as? Int) ?? 0 == 1),
+                    note: (r["note"] as? String) ?? ""
                 ))
             }
             trips = out.sorted { $0.startTs > $1.startTs }
@@ -535,7 +558,7 @@ final class CarStore: ObservableObject {
     /// 近 7 天每日里程（含今天）。轮询很频繁，这里自己限流：5 分钟最多拉一次
     func loadWeekKm(force: Bool = false) async {
         if !force, let t = lastWeekLoad, Date().timeIntervalSince(t) < 300 { return }
-        guard configured, let url = URL(string: base + "/api/stats/week?days=7&include_today=0") else { return }
+        guard configured, let url = URL(string: base + "/api/stats/week?days=7&include_today=1") else { return }
         lastWeekLoad = Date()
         do {
             let (data, http) = try await Net.get(url, token: token)
