@@ -74,7 +74,7 @@ struct TripRow: View {
             Spacer(minLength: 4)
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.1f", trip.distanceKm))
+                Text(trip.distanceKm < 0.05 ? "<0.1" : String(format: "%.1f", trip.distanceKm))
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundColor(Theme.ink)
                 Text("km").font(.system(size: 10)).foregroundColor(Theme.sub)
@@ -178,7 +178,7 @@ struct TripDetailView: View {
                             Text("\(trip.start) → \(trip.end)")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Theme.ink)
-                            Text("\(trip.durationMin) 分钟 · \(String(format: "%.1f", trip.distanceKm)) km")
+                            Text("\(trip.durationMin) 分钟 · \(trip.distanceKm < 0.05 ? "<0.1" : String(format: "%.1f", trip.distanceKm)) km")
                                 .font(.system(size: 13))
                                 .foregroundColor(Theme.sub)
                         }
