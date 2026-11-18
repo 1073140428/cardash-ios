@@ -54,6 +54,7 @@ enum Theme {
     // 状态
     static let good     = dynColor("17A673", "2ED3A0")
     static let warn     = dynColor("F08A24", "FFA53D")
+    static let star     = dynColor("F2A20C", "FFC24B")   // 收藏金色
     static let bad      = dynColor("E5484D", "FF6B70")
 }
 
