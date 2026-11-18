@@ -420,7 +420,11 @@ final class CarStore: ObservableObject {
         tripsError = ""
         defer { tripsLoading = false }
 
-        guard let url = URL(string: base + "/api/trips?limit=200") else {
+        // 只看近 7 天（含今天）：date_from = 今天 - 6 天
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let from = df.string(from: Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
+        guard let url = URL(string: base + "/api/trips?limit=300&date_from=" + from) else {
             tripsError = "地址格式不对"
             return
         }
@@ -438,6 +442,14 @@ final class CarStore: ObservableObject {
             let cal = Calendar.current
             let hhmm = DateFormatter(); hhmm.dateFormat = "HH:mm"
             let mdhm = DateFormatter(); mdhm.dateFormat = "MM-dd HH:mm"
+            let md = DateFormatter(); md.dateFormat = "MM-dd"
+
+            // 统一规则：今天「今天 HH:mm」/ 昨天「昨天 HH:mm」/ 更早「MM-dd HH:mm」
+            func label(_ d: Date) -> String {
+                if cal.isDateInToday(d) { return "今天 " + hhmm.string(from: d) }
+                if cal.isDateInYesterday(d) { return "昨天 " + hhmm.string(from: d) }
+                return mdhm.string(from: d)
+            }
 
             var out: [Trip] = []
             for r in rows {
@@ -446,9 +458,10 @@ final class CarStore: ObservableObject {
                 guard st > 0 else { continue }
                 let sDate = Date(timeIntervalSince1970: st / 1000.0)
                 let eDate = Date(timeIntervalSince1970: max(et, st) / 1000.0)
-                let startText = cal.isDateInToday(sDate) ? hhmm.string(from: sDate) : mdhm.string(from: sDate)
+                let startText = label(sDate)
                 let sameDay = cal.isDate(sDate, inSameDayAs: eDate)
-                let endText = (cal.isDateInToday(eDate) && sameDay) ? hhmm.string(from: eDate) : mdhm.string(from: eDate)
+                // 同一天结束时间只写 HH:mm，跨天才带日期
+                let endText = sameDay ? hhmm.string(from: eDate) : md.string(from: eDate) + " " + hhmm.string(from: eDate)
                 out.append(Trip(
                     id: String(Int(Self.dbl(r["id"]))),
                     start: startText,
