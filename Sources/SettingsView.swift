@@ -13,7 +13,7 @@ struct OverviewView: View {
             VStack(spacing: 14) {
                 PageHeader(
                     title: "总览",
-                    subtitle: store.driving ? "行驶中 · \(store.updatedText)" : "已熄火 · \(store.updatedText)",
+                    subtitle: store.driveText + " · " + store.updatedText,
                     badge: store.connected ? "已连接" : "未连接",
                     badgeOn: store.connected
                 )
@@ -93,7 +93,7 @@ struct OverviewView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Theme.ink)
                     Spacer()
-                    Text(store.driving ? "行驶中" : "停放中")
+                    Text(store.parkText)
                         .font(.system(size: 11))
                         .foregroundColor(Theme.sub)
                 }
