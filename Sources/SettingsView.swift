@@ -93,9 +93,6 @@ struct OverviewView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Theme.ink)
                     Spacer()
-                    Text(store.parkText)
-                        .font(.system(size: 11))
-                        .foregroundColor(Theme.sub)
                 }
 
                 if store.lat != 0 && store.lon != 0 {
