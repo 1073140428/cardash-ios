@@ -147,7 +147,13 @@ final class CarStore: ObservableObject {
         loop = Task { @MainActor in
             while !Task.isCancelled {
                 await refresh()
-                let interval: UInt64 = driving ? 2_000_000_000 : 8_000_000_000
+                let interval: UInt64 = {
+                    switch driveState {
+                    case .driving, .idle: return 2_000_000_000
+                    case .off:            return 8_000_000_000
+                    case .offline:        return 15_000_000_000
+                    }
+                }()
                 try? await Task.sleep(nanoseconds: interval)
             }
         }
@@ -688,7 +694,38 @@ final class CarStore: ObservableObject {
     var fuelOpt: Double?    { number("obd_fuel_liters") }
 
     var obdState: String { values["obd_state"] ?? "未连接" }
-    var driving: Bool { speed > 1 }
+    /// 车辆状态四态：数据超时 → 离线；车速判断行驶；转速+电压判断发动机是否运转
+    enum DriveState { case offline, off, idle, driving }
+
+    var driveState: DriveState {
+        guard let t = dataTs else { return .offline }
+        if Date().timeIntervalSince(t) > 300 { return .offline }   // 5 分钟没新数据
+        if speed > 1 { return .driving }
+        if rpm > 0 && volt >= 13.2 { return .idle }   // 发动机在转但没动
+        return .off
+    }
+
+    /// 总览标题用：离线 / 已熄火 / 怠速中 / 行驶中
+    var driveText: String {
+        switch driveState {
+        case .offline: return "离线"
+        case .off:     return "已熄火"
+        case .idle:    return "怠速中"
+        case .driving: return "行驶中"
+        }
+    }
+
+    /// 地图卡用：离线 / 停放中 / 怠速中 / 行驶中
+    var parkText: String {
+        switch driveState {
+        case .offline: return "离线"
+        case .off:     return "停放中"
+        case .idle:    return "怠速中"
+        case .driving: return "行驶中"
+        }
+    }
+
+    var driving: Bool { driveState == .driving }
 
     /// 与网页端一致：显示最后一条采样的日期时间（数据本身的时间，不是请求时间）
     var updatedText: String {
