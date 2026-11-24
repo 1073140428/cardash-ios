@@ -715,16 +715,6 @@ final class CarStore: ObservableObject {
         }
     }
 
-    /// 地图卡用：离线 / 停放中 / 怠速中 / 行驶中
-    var parkText: String {
-        switch driveState {
-        case .offline: return "离线"
-        case .off:     return "停放中"
-        case .idle:    return "怠速中"
-        case .driving: return "行驶中"
-        }
-    }
-
     var driving: Bool { driveState == .driving }
 
     /// 与网页端一致：显示最后一条采样的日期时间（数据本身的时间，不是请求时间）
