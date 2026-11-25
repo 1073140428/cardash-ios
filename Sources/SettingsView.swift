@@ -18,24 +18,23 @@ struct OverviewView: View {
                     badgeOn: store.connected
                 )
 
-                SoftCard(padding: 10) {
-                    VStack(spacing: 6) {
-                        CarHero(height: 126)
-                        HStack(spacing: 6) {
-                            Text("吉A275CT")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Theme.ink)
-                            Text("·")
-                                .font(.system(size: 12))
-                                .foregroundColor(Theme.sub)
-                            Text(store.connected ? "车况服务已连接" : "等待连接车况服务")
-                                .font(.system(size: 12))
-                                .foregroundColor(Theme.sub)
-                            Spacer(minLength: 0)
-                        }
-                        .frame(height: 20)
+                VStack(spacing: 4) {
+                    CarHero(height: 126)
+                    HStack(spacing: 6) {
+                        Text("吉A275CT")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Theme.ink)
+                        Text("·")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.sub)
+                        Text(store.connected ? "车况服务已连接" : "等待连接车况服务")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.sub)
+                        Spacer(minLength: 0)
                     }
+                    .frame(height: 20)
                 }
+                .padding(.horizontal, 6)
 
                 locationCard
 
