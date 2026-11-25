@@ -63,7 +63,7 @@ struct TabBar: View {
 
 struct RootView: View {
     @EnvironmentObject var store: CarStore
-    @State private var tab = 1
+    @State private var tab = 0
 
     var body: some View {
         ZStack(alignment: .bottom) {
